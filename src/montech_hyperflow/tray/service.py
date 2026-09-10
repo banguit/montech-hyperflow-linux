@@ -9,6 +9,7 @@ the config file.
 import shutil
 import subprocess
 
+from .. import config as configmod
 from .. import status as statusmod
 
 UNIT = "montech-hyperflow.service"
@@ -17,6 +18,25 @@ ADMIN = "montech-hyperflow-admin"
 
 def read_status():
     return statusmod.read()
+
+
+def read_settings():
+    """What is *configured*, as opposed to what is *live*.
+
+    The status file is the truth about what the head is showing, but it only
+    exists while the daemon is running and publishing. The menu's ticks are a
+    statement about intent, so they come from the config file and stay correct
+    across a restart, a stopped service, or a daemon that cannot publish.
+    Returns {} if nothing is configured, which means built-in defaults.
+    """
+    for path in (configmod.SYSTEM_CONFIG, configmod.user_config_path()):
+        try:
+            values, used = configmod.load(path)
+        except ValueError:
+            continue
+        if used:
+            return values
+    return {}
 
 
 def _run(argv, timeout=60):
@@ -86,3 +106,23 @@ def apply_settings(**settings):
     if unit_state() == "active":
         return restart()
     return True, out
+
+
+def selected_unit(record, settings):
+    """Which unit the menu should tick: live if publishing, else configured.
+
+    The status file is the truth about what the head is *showing*; the config
+    file is the truth about what was *chosen*. A tick is a statement about
+    intent, so it must survive a stopped service, a restart, or a daemon that
+    cannot publish -- otherwise the menu silently reverts to the built-in
+    default and contradicts both the config and the display.
+    """
+    if record and not record.get("stale") and record.get("unit"):
+        return record["unit"]
+    return "F" if settings.get("fahrenheit") else "C"
+
+
+def selected_source(record, settings):
+    if record and not record.get("stale") and record.get("source"):
+        return record["source"]
+    return settings.get("source", "cpu")

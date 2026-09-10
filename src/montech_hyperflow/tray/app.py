@@ -84,7 +84,7 @@ class TrayApp:
         self.indicator.set_menu(self.menu)
 
         self.last_signature = None
-        self.build_menu(None, "unknown")
+        self.build_menu(None, "unknown", {})
         self.refresh()
         GLib.timeout_add(REFRESH_MS, self._tick)
 
@@ -97,6 +97,7 @@ class TrayApp:
     def refresh(self):
         record = service.read_status()
         state = service.unit_state()
+        settings = service.read_settings()
 
         if record and not record.get("stale") and record.get("connected"):
             shown = record.get("displayed")
@@ -119,12 +120,12 @@ class TrayApp:
 
         # Rebuild the menu only when something a user can see has changed,
         # so an open menu is not yanked out from under the pointer.
-        signature = (state, bool(record), record and record.get("unit"),
-                     record and record.get("source"),
-                     record and record.get("stale"))
+        signature = (state, bool(record), record and record.get("stale"),
+                     service.selected_unit(record, settings),
+                     service.selected_source(record, settings))
         if signature != self.last_signature:
             self.last_signature = signature
-            self.build_menu(record, state)
+            self.build_menu(record, state, settings)
         else:
             self._update_header(record, state)
 
@@ -153,7 +154,7 @@ class TrayApp:
                 "not-installed": "Service not installed"}.get(
                     state, "Daemon not running")
 
-    def build_menu(self, record, state):
+    def build_menu(self, record, state, settings=None):
         self._building = True
         for child in self.menu.get_children():
             self.menu.remove(child)
@@ -169,20 +170,32 @@ class TrayApp:
 
         self.menu.append(Gtk.SeparatorMenuItem())
 
-        unit = (record or {}).get("unit", "C")
+        # Real RadioMenuItems, not CheckMenuItems with set_draw_as_radio().
+        # The latter only *looks* like a radio: nothing deselects its sibling,
+        # so Celsius and Fahrenheit could both end up ticked.
+        settings = settings or {}
+        unit = service.selected_unit(record, settings)
+        group = None
         for code, text in (("C", "Celsius"), ("F", "Fahrenheit")):
-            item = Gtk.CheckMenuItem(label=text)
-            item.set_draw_as_radio(True)
+            item = Gtk.RadioMenuItem(label=text)
+            if group is None:
+                group = item
+            else:
+                item.join_group(group)
             item.set_active(unit == code)
             item.connect("toggled", self.on_unit, code)
             self.menu.append(item)
 
         self.menu.append(Gtk.SeparatorMenuItem())
 
-        source = (record or {}).get("source", "cpu")
+        source = service.selected_source(record, settings)
+        group = None
         for code, text in (("cpu", "Show CPU"), ("gpu", "Show GPU")):
-            item = Gtk.CheckMenuItem(label=text)
-            item.set_draw_as_radio(True)
+            item = Gtk.RadioMenuItem(label=text)
+            if group is None:
+                group = item
+            else:
+                item.join_group(group)
             item.set_active(source == code)
             item.connect("toggled", self.on_source, code)
             self.menu.append(item)

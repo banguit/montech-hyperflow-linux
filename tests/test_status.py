@@ -151,3 +151,41 @@ class ExplicitPathIsAuthoritative(unittest.TestCase):
         self.assertEqual(paths[0], S.STATUS_PATH)
         if S._fallback_dir():
             self.assertEqual(len(paths), 2)
+
+
+class MenuSelection(unittest.TestCase):
+    """Which unit/source the tray ticks.
+
+    Regression: with no status published the menu fell back to its built-in
+    defaults, so after switching to Fahrenheit the head showed degF while the
+    menu still ticked Celsius. Status is the truth about what is displayed;
+    config is the truth about what was chosen.
+    """
+
+    def setUp(self):
+        from montech_hyperflow.tray import service
+        self.service = service
+
+    def test_live_status_wins(self):
+        record = {"unit": "F", "source": "gpu", "stale": False}
+        self.assertEqual(self.service.selected_unit(record, {}), "F")
+        self.assertEqual(self.service.selected_source(record, {}), "gpu")
+
+    def test_config_used_when_no_status(self):
+        settings = {"fahrenheit": True, "source": "gpu"}
+        self.assertEqual(self.service.selected_unit(None, settings), "F")
+        self.assertEqual(self.service.selected_source(None, settings), "gpu")
+
+    def test_config_used_when_status_is_stale(self):
+        stale = {"unit": "C", "source": "cpu", "stale": True}
+        settings = {"fahrenheit": True, "source": "gpu"}
+        self.assertEqual(self.service.selected_unit(stale, settings), "F")
+        self.assertEqual(self.service.selected_source(stale, settings), "gpu")
+
+    def test_defaults_when_neither_is_available(self):
+        self.assertEqual(self.service.selected_unit(None, {}), "C")
+        self.assertEqual(self.service.selected_source(None, {}), "cpu")
+
+    def test_explicit_celsius_in_config_is_honoured(self):
+        settings = {"fahrenheit": False, "source": "cpu"}
+        self.assertEqual(self.service.selected_unit(None, settings), "C")

@@ -27,7 +27,21 @@ Documentation=file:@DOCDIR@/README.md
 
 [Service]
 Type=exec
-ExecStart=@BINDIR@/montech-hyperflow --source cpu --blank-on-exit
+ExecStart=@BINDIR@/montech-hyperflow --blank-on-exit
+
+# No --source/--fahrenheit/--interval here on purpose. Command-line flags beat
+# the config file, so a setting passed here is one the tray can write to
+# /etc/montech-hyperflow.conf and then watch the daemon silently ignore.
+# --blank-on-exit stays because it is a service-lifecycle concern, not a user
+# preference: without it a stop leaves the last reading frozen on the head.
+
+# ProtectSystem=strict makes /run read-only, so the daemon cannot create its
+# own status directory. RuntimeDirectory= makes systemd create
+# /run/montech-hyperflow owned by the DynamicUser before the process starts,
+# and remove it on stop. Without this the daemon publishes no status and the
+# tray has nothing to read -- it silently falls back to showing defaults.
+RuntimeDirectory=montech-hyperflow
+RuntimeDirectoryMode=0755
 
 # Type=exec, not simple: with Type=simple systemd reports success the moment it
 # forks, so a missing or non-executable ExecStart becomes a silent infinite
