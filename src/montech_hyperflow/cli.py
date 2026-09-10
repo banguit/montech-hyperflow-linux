@@ -144,8 +144,9 @@ def do_status():
     from . import status as statusmod
     record = statusmod.read()
     if record is None:
-        print("no running daemon has published status "
-              "(looked in %s)" % statusmod.STATUS_PATH)
+        print("no running daemon has published status. Looked in:")
+        for candidate in statusmod.search_paths():
+            print("  %s" % candidate)
         return EX_FAIL
     order = ("celsius", "displayed", "unit", "source", "level", "sensor",
              "device", "frame_len", "interval", "blanked", "connected",

@@ -74,14 +74,23 @@ class StatusWriter:
             pass
 
 
+def search_paths(path=STATUS_PATH):
+    """Every location `read` will look in, in order."""
+    paths = [path]
+    alt = _fallback_dir()
+    if alt:
+        paths.append(os.path.join(alt, "status.json"))
+    return paths
+
+
 def read(path=STATUS_PATH):
     """Return the daemon's last published status, or None.
 
     A record older than STALE_AFTER is returned with stale=True rather than
     hidden, so the UI can say "last seen 4 minutes ago" instead of "unknown".
     """
-    for candidate in (path, (_fallback_dir() or "") + "/status.json"):
-        if not candidate or not os.path.exists(candidate):
+    for candidate in search_paths(path):
+        if not os.path.exists(candidate):
             continue
         try:
             with open(candidate) as fh:

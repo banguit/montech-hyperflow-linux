@@ -13,8 +13,33 @@ import sys
 import gi
 
 gi.require_version("Gtk", "3.0")
-gi.require_version("AyatanaAppIndicator3", "0.1")
-from gi.repository import AyatanaAppIndicator3 as AppIndicator  # noqa: E402
+
+
+def _load_appindicator():
+    """The indicator binding, newest first.
+
+    libayatana-appindicator3 warns that it is deprecated in favour of
+    libayatana-appindicator-glib, but the GLib variant is not yet packaged on
+    every distro (it is absent on Ubuntu 26.04). AppIndicator3 is the older
+    Ubuntu name, still present on some systems. Try them in order.
+    """
+    for name, version in (("AyatanaAppIndicatorGLib", "1"),
+                          ("AyatanaAppIndicator3", "0.1"),
+                          ("AppIndicator3", "0.1")):
+        try:
+            gi.require_version(name, version)
+            module = __import__("gi.repository", fromlist=[name])
+            return getattr(module, name)
+        except (ValueError, ImportError, AttributeError):
+            continue
+    raise ImportError(
+        "no AppIndicator binding found. Install one of:\n"
+        "  Debian/Ubuntu  gir1.2-ayatanaappindicator3-0.1\n"
+        "  Fedora         libayatana-appindicator-gtk3\n"
+        "  Arch           libayatana-appindicator")
+
+
+AppIndicator = _load_appindicator()
 from gi.repository import GLib, Gtk                             # noqa: E402
 
 from .. import __version__                                      # noqa: E402
