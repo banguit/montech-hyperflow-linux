@@ -40,7 +40,7 @@ def _load_appindicator():
 
 
 AppIndicator = _load_appindicator()
-from gi.repository import GLib, Gtk                             # noqa: E402
+from gi.repository import Gio, GLib, Gtk                        # noqa: E402
 
 from .. import __version__                                      # noqa: E402
 from .. import config as configmod                              # noqa: E402
@@ -48,14 +48,15 @@ from . import service                                           # noqa: E402
 
 APP_ID = "montech-hyperflow"
 
-# Panel icons are the SYMBOLIC variants, in preference order. A symbolic icon
-# is recoloured by the shell to match the panel foreground, which is what
-# makes it correct on both light and dark themes and crisp at 16px. The
-# full-colour icon is for the About dialog and the app grid, where it sits on
-# a known background at a size where detail reads.
-ICON_ACTIVE = ("montech-hyperflow-symbolic", "montech-hyperflow")
-ICON_IDLE = ("montech-hyperflow-idle-symbolic", "montech-hyperflow-idle",
-             "montech-hyperflow-symbolic", "montech-hyperflow")
+# Full-colour icons, in two trims. The pump head is a dark object: on a dark
+# panel its body disappears and only the rim reads, so the rim is lightened;
+# on a light panel the body reads as a solid mass and the rim is darkened to
+# stay crisp. There is no freedesktop convention for a light/dark pair of
+# full-colour icons, so the name is chosen here at runtime.
+#
+# The theme also ships a reduced drawing in 16x16/ and 24x24/ and the full one
+# in scalable/; the icon theme picks by requested size, so nothing here needs
+# to know about that.
 ICON_APP = "montech-hyperflow"
 REFRESH_MS = 1000
 
@@ -64,11 +65,7 @@ DOC_DIRS = ("/usr/share/doc/montech-hyperflow",
 
 
 def _thermometer_fallback():
-    """Stock icon to use when ours is not installed.
-
-    Symbolic names only: an unthemed full-colour stock icon in a panel looks
-    worse than a generic symbolic one.
-    """
+    """Stock icon to use when ours is not installed."""
     theme = Gtk.IconTheme.get_default()
     for name in ("temperature-symbolic", "sensors-temperature-symbolic",
                  "utilities-system-monitor-symbolic", "computer-symbolic"):
@@ -77,20 +74,48 @@ def _thermometer_fallback():
     return "application-x-executable"
 
 
+def _panel_is_dark():
+    """Whether the panel this icon will sit in is dark.
+
+    GNOME's colour-scheme is the authoritative signal where it exists; the
+    GTK settings are the fallback for desktops that do not publish it. When
+    nothing answers, assume dark: it is much the more common panel, and the
+    dark trim degrades more gracefully on a light panel than the reverse.
+    """
+    try:
+        source = Gio.SettingsSchemaSource.get_default()
+        if source is not None and source.lookup("org.gnome.desktop.interface",
+                                                True) is not None:
+            scheme = Gio.Settings.new(
+                "org.gnome.desktop.interface").get_string("color-scheme")
+            if scheme == "prefer-dark":
+                return True
+            if scheme == "prefer-light":
+                return False
+    except Exception:
+        pass
+    settings = Gtk.Settings.get_default()
+    if settings is not None:
+        try:
+            if settings.get_property("gtk-application-prefer-dark-theme"):
+                return True
+            name = settings.get_property("gtk-theme-name") or ""
+            if name.lower().endswith("-dark") or "dark" in name.lower():
+                return True
+        except Exception:
+            pass
+    return True
+
+
 class TrayApp:
     def __init__(self):
         theme = Gtk.IconTheme.get_default()
 
-        def pick(names):
-            for name in names:
-                if theme.has_icon(name):
-                    return name
-            return _thermometer_fallback()
-
-        self.icon_active = pick(ICON_ACTIVE)
-        self.icon_idle = pick(ICON_IDLE)
         self.icon_app = (ICON_APP if theme.has_icon(ICON_APP)
-                         else self.icon_active)
+                         else _thermometer_fallback())
+        self.panel_dark = None
+        self.icon_active = self.icon_idle = self.icon_app
+        self._refresh_icon_names()
 
         self.indicator = AppIndicator.Indicator.new(
             APP_ID, self.icon_active,
@@ -113,10 +138,33 @@ class TrayApp:
         self.refresh()
         return True
 
+    def _refresh_icon_names(self):
+        """Re-pick the light/dark trim. Returns True if it changed."""
+        dark = _panel_is_dark()
+        if dark == self.panel_dark:
+            return False
+        self.panel_dark = dark
+        theme = Gtk.IconTheme.get_default()
+        suffix = "" if dark else "-light"
+
+        def pick(*names):
+            for name in names:
+                if theme.has_icon(name):
+                    return name
+            return _thermometer_fallback()
+
+        self.icon_active = pick("montech-hyperflow" + suffix,
+                                "montech-hyperflow")
+        self.icon_idle = pick("montech-hyperflow%s-idle" % suffix,
+                              "montech-hyperflow-idle",
+                              self.icon_active)
+        return True
+
     def refresh(self):
         record = service.read_status()
         state = service.unit_state()
         settings = service.read_settings()
+        self._refresh_icon_names()
 
         if record and not record.get("stale") and record.get("connected"):
             shown = record.get("displayed")

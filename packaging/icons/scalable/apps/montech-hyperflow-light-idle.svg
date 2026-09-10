@@ -5,7 +5,7 @@
        an octagonal glass face edge to edge, a thin rim, a ten-segment level
        bar and two seven-segment digits. No vendor artwork is reproduced. -->
   <path d="M15.10 1.60 L32.90 1.60 L46.40 15.10 L46.40 32.90 L32.90 46.40 L15.10 46.40 L1.60 32.90 L1.60 15.10 Z" fill="#0b0d11"/>
-  <path d="M15.10 1.60 L32.90 1.60 L46.40 15.10 L46.40 32.90 L32.90 46.40 L15.10 46.40 L1.60 32.90 L1.60 15.10 Z" fill="none" stroke="#7c8598" stroke-width="2.2"/>
+  <path d="M15.10 1.60 L32.90 1.60 L46.40 15.10 L46.40 32.90 L32.90 46.40 L15.10 46.40 L1.60 32.90 L1.60 15.10 Z" fill="none" stroke="#171a20" stroke-width="2.2"/>
   <text x="25.5" y="15.6" font-family="DejaVu Sans, sans-serif" font-size="6.0"
         font-weight="bold" fill="#333845" letter-spacing="0.5">CPU</text>
   <rect x="9.4" y="33.00" width="3.4" height="1.5" rx="0.55" fill="#333845"/><rect x="9.4" y="30.95" width="3.4" height="1.5" rx="0.55" fill="#333845"/><rect x="9.4" y="28.90" width="3.4" height="1.5" rx="0.55" fill="#333845"/><rect x="9.4" y="26.85" width="3.4" height="1.5" rx="0.55" fill="#333845"/><rect x="9.4" y="24.80" width="3.4" height="1.5" rx="0.55" fill="#333845"/><rect x="9.4" y="22.75" width="3.4" height="1.5" rx="0.55" fill="#333845"/><rect x="9.4" y="20.70" width="3.4" height="1.5" rx="0.55" fill="#333845"/><rect x="9.4" y="18.65" width="3.4" height="1.5" rx="0.55" fill="#333845"/><rect x="9.4" y="16.60" width="3.4" height="1.5" rx="0.55" fill="#333845"/><rect x="9.4" y="14.55" width="3.4" height="1.5" rx="0.55" fill="#333845"/>

@@ -70,7 +70,9 @@ lint:
 	        exit 1; \
 	    fi; \
 	done
-	@$(PYTHON) -c "import gi;gi.require_version('GdkPixbuf','2.0');from gi.repository import GdkPixbuf;import glob,sys;[GdkPixbuf.Pixbuf.new_from_file_at_scale(f,16,16,True) for f in glob.glob('packaging/icons/*/apps/*.svg')];print('  icons OK (parse + 16px load)')" 2>/dev/null || echo "  icons OK (parse only; no GdkPixbuf here)"
+	@$(PYTHON) packaging/icons/generate.py >/dev/null && git diff --quiet -- packaging/icons 2>/dev/null \
+	    || echo "  note: packaging/icons is out of sync with generate.py (or not a git tree)"
+	@$(PYTHON) -c "import gi;gi.require_version('GdkPixbuf','2.0');from gi.repository import GdkPixbuf;import glob;[GdkPixbuf.Pixbuf.new_from_file_at_scale(f,16,16,True) for f in glob.glob('packaging/icons/*/apps/*.svg')];print('  icons OK (parse + 16px load + generator in sync)')" 2>/dev/null || echo "  icons OK (parse only; no GdkPixbuf here)"
 	@sh -n packaging/systemd/montech-hyperflow-sleep && echo "  sleep hook OK"
 
 install: install-core
@@ -99,10 +101,15 @@ install-tray: install-lib install-icons install-desktop install-polkit
 	    gtk-update-icon-cache -f -t $(ICONDIR) 2>/dev/null || true; fi
 	@echo "Tray installed. Run: $(NAME)-tray"
 
+# 16x16/ and 24x24/ carry the reduced drawing, scalable/ the full one; the
+# icon theme picks by requested size. Icons are generated -- see
+# packaging/icons/generate.py -- so do not hand-edit the SVGs.
 install-icons:
-	$(INSTALL) -d $(DESTDIR)$(ICONDIR)/scalable/apps $(DESTDIR)$(ICONDIR)/symbolic/apps
+	$(INSTALL) -d $(DESTDIR)$(ICONDIR)/16x16/apps $(DESTDIR)$(ICONDIR)/24x24/apps \
+	             $(DESTDIR)$(ICONDIR)/scalable/apps
+	$(INSTALL) -m 0644 packaging/icons/16x16/apps/*.svg $(DESTDIR)$(ICONDIR)/16x16/apps/
+	$(INSTALL) -m 0644 packaging/icons/24x24/apps/*.svg $(DESTDIR)$(ICONDIR)/24x24/apps/
 	$(INSTALL) -m 0644 packaging/icons/scalable/apps/*.svg $(DESTDIR)$(ICONDIR)/scalable/apps/
-	$(INSTALL) -m 0644 packaging/icons/symbolic/apps/*.svg $(DESTDIR)$(ICONDIR)/symbolic/apps/
 
 install-desktop:
 	$(INSTALL) -d $(DESTDIR)$(APPDIR)
@@ -160,6 +167,8 @@ uninstall:
 	rm -f  $(DESTDIR)$(SLEEPDIR)/$(NAME)
 	rm -f  $(DESTDIR)$(POLKITDIR)/org.montech.hyperflow.policy
 	rm -f  $(DESTDIR)$(APPDIR)/$(NAME)-tray.desktop
+	rm -f  $(DESTDIR)$(ICONDIR)/16x16/apps/$(NAME)*.svg
+	rm -f  $(DESTDIR)$(ICONDIR)/24x24/apps/$(NAME)*.svg
 	rm -f  $(DESTDIR)$(ICONDIR)/scalable/apps/$(NAME)*.svg
 	rm -f  $(DESTDIR)$(ICONDIR)/symbolic/apps/$(NAME)*.svg
 	rm -rf $(DESTDIR)$(DOCDIR)

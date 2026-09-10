@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-  <!-- montech-hyperflow. Octagon ring = the pump head seen face on, 2px wall. Inside it the display: two digit blocks when running, empty when stopped. Single currentColor, every light area is negative space via fill-rule evenodd, so the shell can recolour it for a light or a dark panel. Comment kept inside <svg>: gdk-pixbuf sniffs the format from the first bytes and will not load a file whose root element is pushed past that window. -->
-  <path fill="currentColor" fill-rule="evenodd" d="M5 1 H11 L15 5 V11 L11 15 H5 L1 11 V5 Z M5.8284 3 H10.1716 L13 5.8284 V10.1716 L10.1716 13 H5.8284 L3 10.1716 V5.8284 Z M4 6 H12 V10 H4 Z M5.5 7 H7 V9 H5.5 Z M9 7 H10.5 V9 H9 Z"/>
-</svg>
