@@ -10,7 +10,7 @@
 # and the driver cannot open it. This script installs that one rule, makes
 # sure the group it names exists, and puts you in it.
 #
-#   sudo ./montech-hyperflow-0.3.0-x86_64.AppImage setup
+#   sudo ./montech-hyperflow-1.0.0-x86_64.AppImage setup
 #
 # It does NOT install, enable or start any service. Nothing it does starts at
 # boot. It is safe to run again: every step checks first.

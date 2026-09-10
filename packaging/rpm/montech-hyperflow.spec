@@ -2,8 +2,8 @@
 #
 # Build straight from a release tarball, which is what `make rpm` does:
 #
-#     make tarball                                  # git archive, prefix montech-hyperflow-0.3.0/
-#     rpmbuild -ta montech-hyperflow-0.3.0.tar.gz   # this spec is inside the tarball
+#     make tarball                                  # git archive, prefix montech-hyperflow-1.0.0/
+#     rpmbuild -ta montech-hyperflow-1.0.0.tar.gz   # this spec is inside the tarball
 #
 # `rpmbuild -ta` pulls the spec out of the tarball itself, so this file must
 # stay tracked in git or the tarball will not contain it.
@@ -12,7 +12,7 @@
 # src/montech_hyperflow/__init__.py; the Makefile scrapes __version__ from
 # there to name the tarball, and %%prep below fails the build if this drifts
 # from it.
-%global upstream_version 0.3.0
+%global upstream_version 1.0.0
 
 # The private libdir. NOT %%{_libdir}: this package is noarch and the Makefile
 # installs to $(PREFIX)/lib/montech-hyperflow, which is /usr/lib even on
@@ -76,7 +76,7 @@ Requires(pre):  shadow-utils
 
 %description
 An unofficial, community-written Linux driver for the 7-segment display on the
-pump head of a Montech HyperFlow Digital 240/360 all-in-one liquid cooler. It
+pump head of a Montech HyperFlow Digital 241.0.0 all-in-one liquid cooler. It
 is NOT produced, endorsed, supported or approved by Montech, TCOMAS or SEMICO;
 do not contact them about it. "Montech" and "HyperFlow" are used here only to
 identify the hardware the software talks to.
@@ -305,7 +305,7 @@ gtk-update-icon-cache %{_datadir}/icons/hicolor >/dev/null 2>&1 || :
 %{_datadir}/icons/hicolor/symbolic/apps/%{name}-idle-symbolic.svg
 
 %changelog
-* Thu Sep 10 2026 montech-hyperflow packagers <OWNER@users.noreply.github.com> - 0.3.0-1
+* Thu Sep 10 2026 montech-hyperflow packagers <OWNER@users.noreply.github.com> - 1.0.0-1
 - Initial RPM packaging, split into montech-hyperflow and -tray.
 - Ship the udev rule in %%{_udevrulesdir} rather than /etc, leaving /etc for
   admin overrides.

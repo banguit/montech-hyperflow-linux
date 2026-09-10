@@ -30,8 +30,8 @@ Or build without installing, then install by hand:
 
 ```sh
 makepkg -f
-sudo pacman -U montech-hyperflow-0.3.0-1-any.pkg.tar.zst
-sudo pacman -U montech-hyperflow-tray-0.3.0-1-any.pkg.tar.zst   # optional
+sudo pacman -U montech-hyperflow-1.0.0-1-any.pkg.tar.zst
+sudo pacman -U montech-hyperflow-tray-1.0.0-1-any.pkg.tar.zst   # optional
 ```
 
 Core-only, on a headless box: build both (they come from one `PKGBUILD`) and
@@ -67,7 +67,7 @@ Build a checkout somewhere else with:
 _srctree=/path/to/montech-hyperflow makepkg -si
 ```
 
-At release time, once `OWNER` is real and a `v0.3.0` tag exists, swap in a
+At release time, once `OWNER` is real and a `v1.0.0` tag exists, swap in a
 proper source array — the header comment in the `PKGBUILD` spells out the
 three-line change. `prepare()` refuses to build if `pkgver` and
 `__version__` in `src/montech_hyperflow/__init__.py` disagree, so a forgotten

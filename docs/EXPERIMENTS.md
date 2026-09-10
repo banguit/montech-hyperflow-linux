@@ -253,7 +253,15 @@ most user-visible field in the protocol and belongs in the README.
 
 </details>
 
-## E3 — is the `0xFD` startup command required?
+## E3 — is the `0xFD` startup command required?  *(not pursued)*
+
+**Deliberately left unanswered.** Settling it requires a genuine power-off —
+a reboot leaves the head powered by 5 V standby on most boards — and the
+driver sends `0xFD` on every open regardless, including after a resume or a
+replug. So the answer would not change a line of code. Recorded here in case
+someone with the hardware powered down anyway wants to close it.
+
+## E3 — the original procedure
 
 **Variable:** whether the init frame is sent, from a genuinely cold display.
 

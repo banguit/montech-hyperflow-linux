@@ -137,7 +137,7 @@ matters on Linux — you read hwmon instead.
 
 | Field | Meaning |
 |---|---|
-| `[this+0x3b0]` | display source: 0 = CPU, 1 = GPU (also copied to byte 5) |
+| `[this+1.0.0]` | display source: 0 = CPU, 1 = GPU (also copied to byte 5) |
 | `[this+0x3b4]` | unit: 0 = °C, 1 = °F (low nibble of byte 4) |
 | `[this+0x34c]` | display enable; when not 1, the blank frame is sent |
 
@@ -309,7 +309,7 @@ Three consequences:
 **What the vendor app exposes** (manual, Software Installation page): exactly
 three controls — an `ON | OFF` switch, a `CPU | GPU` toggle and a `°C | °F`
 toggle. Nothing else. That matches the three settings recovered from the
-binary (`[this+0x34c]`, `[this+0x3b0]`, `[this+0x3b4]`) with nothing left
+binary (`[this+0x34c]`, `[this+1.0.0]`, `[this+0x3b4]`) with nothing left
 over, and it means **`level` is not user-configurable** — consistent with it
 being derived from temperature rather than chosen.
 
@@ -349,7 +349,7 @@ cover.
 |---|---|---|
 | ~~1~~ | ~~Does byte 5 change anything visible?~~ **Settled: it selects a `CPU`/`GPU` text label the head draws.** | ~~`E1`~~ |
 | ~~2~~ | ~~What does `level` actually drive?~~ **Settled: the vertical segment bar, N segments for level N.** | ~~`E2`~~ |
-| 3 | Is the `0xFD` startup command *required*? (Known: it does not blank or disturb the display when sent.) | `E3` |
+| 3 | Is the `0xFD` startup command *required*? | **Not pursued.** It needs a cold power-off to test, and the driver sends it on every open anyway — including after a resume or a replug — so the answer changes nothing. Known: it does not blank or disturb the display. |
 | 4 | Does the descriptor-*incorrect* 65-byte frame also work, or does the firmware stall it? (64 is now known to work.) | `E4` |
 | 5 | Does the head need re-initialising after suspend/resume or a monitor-off cycle? | `E5` |
 | ~~6~~ | ~~Does the unit nibble visibly change anything?~~ **Settled: it selects a `°C`/`°F` mark, and `level` provably stays on the Celsius value.** | ~~`E-Unit`~~ |

@@ -295,5 +295,5 @@ modules:
       #
       # - type: git
       #   url: https://github.com/OWNER/montech-hyperflow.git
-      #   tag: v0.3.0
-      #   commit: <fill in with: git rev-parse v0.3.0^{commit}>
+      #   tag: v1.0.0
+      #   commit: <fill in with: git rev-parse v1.0.0^{commit}>

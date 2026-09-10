@@ -23,7 +23,8 @@ ICONDIR     ?= $(DATADIR)/icons/hicolor
 
 PYTHON      ?= python3
 NAME        := montech-hyperflow
-VERSION     := $(shell $(PYTHON) -c "import re;print(re.search(r'__version__ = \"([^\"]+)\"',open('src/montech_hyperflow/__init__.py').read()).group(1))")
+VERSION_FROM_SOURCE := $(shell $(PYTHON) -c "import re;print(re.search(r'__version__ = \"([^\"]+)\"',open('src/montech_hyperflow/__init__.py').read()).group(1))")
+VERSION     ?= $(VERSION_FROM_SOURCE)
 INSTALL     ?= install
 
 # The package is installed to a private libdir with generated wrappers rather
@@ -38,7 +39,7 @@ define wrapper
 	chmod 0755 $(1)
 endef
 
-.PHONY: all test check lint install install-core install-tray install-bin \
+.PHONY: all test check lint bump set-repo check-version install install-core install-tray install-bin \
         install-lib install-udev install-unit install-polkit install-doc \
         install-icons install-desktop uninstall enable disable reload-udev \
         deb rpm tarball clean version
@@ -193,6 +194,42 @@ deb: test
 
 rpm: tarball
 	rpmbuild -ta $(NAME)-$(VERSION).tar.gz
+
+# The version and the repository owner appear in packaging metadata, docs and
+# CI in dozens of places. Both are scripted so they cannot drift: the source
+# of truth for the version is src/montech_hyperflow/__init__.py, and `bump`
+# rewrites everything that must agree with it.
+#
+#   make bump VERSION=1.0.1
+#   make set-repo OWNER=yourname
+bump:
+	@test -n "$(VERSION)" || { echo "usage: make bump VERSION=x.y.z"; exit 2; }
+	@echo "$(VERSION)" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$$' \
+	    || { echo "error: VERSION must look like x.y.z"; exit 2; }
+	@old=$(VERSION_FROM_SOURCE); \
+	 sed -i 's/^__version__ = ".*"$$/__version__ = "$(VERSION)"/' src/montech_hyperflow/__init__.py; \
+	 grep -rl "$$old" --exclude-dir=.git --exclude-dir=build . \
+	   | xargs -r sed -i "s/$$old/$(VERSION)/g"; \
+	 echo "bumped $$old -> $(VERSION)"
+	@$(MAKE) --no-print-directory check-version
+
+set-repo:
+	@test -n "$(OWNER)" || { echo "usage: make set-repo OWNER=yourname"; exit 2; }
+	@grep -rl 'OWNER' --exclude-dir=.git --exclude-dir=build . \
+	   | xargs -r sed -i 's|OWNER|$(OWNER)|g'
+	@echo "repository owner set to $(OWNER)"
+	@echo "remaining OWNER placeholders: $$(grep -ro OWNER --exclude-dir=.git --exclude-dir=build . | wc -l)"
+
+# Fails if any packaging file disagrees with the source of truth.
+check-version:
+	@v=$(VERSION_FROM_SOURCE); rc=0; \
+	 check() { grep -q "$$2" "$$1" || { echo "  MISMATCH $$1 (expected $$v)"; rc=1; }; }; \
+	 check packaging/arch/PKGBUILD "^pkgver=$$v$$"; \
+	 check packaging/rpm/montech-hyperflow.spec "^%global upstream_version $$v$$"; \
+	 check packaging/debian-source/changelog "($$v-1)"; \
+	 check packaging/appstream/org.montech.HyperFlow.metainfo.xml "version=\"$$v\""; \
+	 test $$rc -eq 0 && echo "  version $$v consistent across packaging"; \
+	 exit $$rc
 
 clean:
 	rm -rf build __pycache__ */__pycache__ */*/__pycache__ *.pyc \

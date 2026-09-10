@@ -1,4 +1,4 @@
-# Montech HyperFlow Digital 240/360 pump-head display (TCOMAS DH-C100 platform)
+# Montech HyperFlow Digital 241.0.0 pump-head display (TCOMAS DH-C100 platform)
 #
 # The cooler enumerates as USB 1a2c:4e85 with the generic OEM product string
 # "USB Gaming Keyboard" and exposes TWO HID interfaces:

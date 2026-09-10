@@ -161,7 +161,7 @@ jobs:
           files: dist/*
           fail_on_unmatched_files: true
           draft: false
-          # v0.3.0-rc1 and friends are marked pre-release automatically.
+          # v1.0.0-rc1 and friends are marked pre-release automatically.
           prerelease: ${{ contains(github.ref_name, '-') }}
           body: |
             **Unofficial community driver** for the display on a Montech

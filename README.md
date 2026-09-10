@@ -1,54 +1,65 @@
+<div align="center">
+
 # montech-hyperflow
 
-Drive the 7-segment display on a **Montech HyperFlow Digital 240/360** AIO pump
-head from Linux, with a panel indicator and a system service.
+**Your Montech HyperFlow Digital's temperature display, working on Linux.**
 
-> **Unofficial community driver.** Not produced, endorsed or supported by
-> Montech. Montech's own app is Windows-only; this is a clean-room-documented
-> Linux port of the wire protocol, written from scratch. See
+The pump head has a little screen. Montech only ships a Windows app to drive
+it. This drives it from Linux — as a background service, with a panel
+indicator, and with no dependencies beyond Python itself.
+
+[![license](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
+[![protocol](https://img.shields.io/badge/protocol-confirmed%20on%20hardware-brightgreen)](docs/PROTOCOL.md)
+[![no deps](https://img.shields.io/badge/dependencies-python3%20only-brightgreen)](#why-no-dependencies)
+
+</div>
+
+---
+
+> **This is not Montech software.** It is an unofficial community driver,
+> written from scratch, not affiliated with or endorsed by Montech. See
 > [`NOTICE.md`](NOTICE.md).
->
-> Hardware: USB **`1a2c:4e85`** (SEMICO controller), OEM platform
-> **TCOMAS DH-C100**. Other rebrands of the same pump head very likely work
-> unchanged — if yours does, please open an issue and say so.
 
-The daemon is **pure Python standard library**: no hidapi, no libusb, no
-pyudev, no kernel module. It talks to `/dev/hidrawN` directly. GUI
-dependencies live only in the optional tray package.
+## Does this work with my cooler?
 
-![status](https://img.shields.io/badge/phase%201-confirmed%20on%20hardware-brightgreen)
-![license](https://img.shields.io/badge/license-GPL--3.0-blue)
+If the pump head has a digital temperature display and shows up like this,
+yes:
 
-## Status
+```console
+$ lsusb | grep 1a2c
+Bus 003 Device 006: ID 1a2c:4e85 China Resource Semico Co., Ltd USB Gaming Keyboard
+```
 
-**Working and confirmed on real hardware:** device discovery, the 64-byte
-frame, digit rendering, live CPU temperature tracking `sensors` to the degree
-under load, non-root access, reopen after unplug.
+"USB Gaming Keyboard" is a generic string baked into the OEM controller — not
+a sign you have the wrong device.
 
-**Still unknown:** what the `level` nibble and byte 5 actually *look* like on
-the head. Those need a human looking at the pump head, so they are written up
-as reproducible experiments in [`docs/EXPERIMENTS.md`](docs/EXPERIMENTS.md)
-rather than guessed at in code.
+| | |
+|---|---|
+| **Confirmed working** | HyperFlow Digital 240 |
+| **Expected to work** | HyperFlow Digital 360 — same protocol, same controller |
+| **Quite likely** | Other rebrands of the OEM platform **TCOMAS DH-C100** |
 
-Every protocol claim carries its confidence level in
-[`docs/PROTOCOL.md`](docs/PROTOCOL.md), with the `DeviceDriver.exe` address
-behind it.
+Got a rebrand that works? [Open an issue](../../issues) and say so.
 
 ## Install
 
 ```bash
-make test          # hardware-free; should be all green
-sudo make install  # daemon, udev rule, service, sleep hook, docs
+git clone https://github.com/OWNER/montech-hyperflow
+cd montech-hyperflow
+make test                # no hardware needed, should be all green
+sudo make install        # the driver, the service, device permissions
 sudo make install-tray   # optional: the panel indicator
 ```
 
-Then check it found the device — this writes nothing:
+Check it found your cooler — this writes nothing to the device:
 
 ```bash
 montech-hyperflow --list
 ```
 
-```
+You want to see `/dev/hidraw5` (or similar) marked **writable**:
+
+```console
 matching hidraw nodes (0xFF01 vendor collection):
   /dev/hidraw5  feature report 63 data bytes -> 64-byte frame  stable: /dev/montech-hyperflow
 all 1a2c:4e85 nodes:
@@ -58,251 +69,201 @@ cpu sensor: /sys/class/hwmon/hwmon3/temp1_input
             reads 41.0 C  [Package id 0]
 ```
 
-`hidraw5` must say **writable**. If not, see [Permissions](#permissions).
-
-Try it in the foreground before installing the service:
+Try it in the foreground before committing to a service:
 
 ```bash
-montech-hyperflow --test-value 42     # a fixed, known number
+montech-hyperflow --test-value 42     # put a known number on the head
 montech-hyperflow                     # live CPU temperature
 ```
 
-Then:
+Happy? Turn it on permanently:
 
 ```bash
 sudo systemctl enable --now montech-hyperflow
 ```
 
-### Packages
-
-CI builds `.deb`, `.rpm`, an Arch `PKGBUILD`, an AppImage, a Flatpak and a
-Snap. See [Which package should I use?](#which-package-should-i-use) — it is
-not a free choice, because this software needs a udev rule and a system
-service, which sandboxed formats cannot install.
+Prefer a package? `make deb` builds one, and CI publishes `.deb`, `.rpm`,
+Arch, AppImage, Flatpak and Snap — see [which one to
+pick](#which-package-should-i-use).
 
 ## The panel indicator
 
-`montech-hyperflow-tray` puts the temperature the head is showing into your
-panel, with the controls worth having one click away: °C/°F, CPU/GPU,
-start/stop the service, blank the display.
-
-It is a **client**. It never opens the device — the system service owns that,
-so the head keeps working when you log out or sit at the login screen. Two
-writers to one display would fight at 1 Hz.
-
-How it talks to the daemon, deliberately boringly:
-
-| Direction | Mechanism |
-|---|---|
-| status | the daemon writes `/run/montech-hyperflow/status.json` atomically each tick; the tray reads it |
-| start/stop | `systemctl`, which raises a polkit prompt through your session's auth agent |
-| settings | a tiny `pkexec` helper that validates every key before writing `/etc/montech-hyperflow.conf` |
-
-No D-Bus binding, no IPC protocol, no daemon dependencies. You can `cat` the
-status file.
-
-> **GNOME users:** tray icons need the *AppIndicator and KStatusNotifierItem*
-> extension. On Ubuntu it is installed and enabled by default. On stock GNOME,
-> install `gnome-shell-extension-appindicator` and enable it.
-
-### Light and dark themes
-
-The panel uses the **symbolic** icons, which the shell recolours to match the
-panel foreground, so they are correct on light and dark themes automatically
-and stay crisp at 16px. The full-colour icon is used only where it sits on a
-known background at a readable size: the About dialog and the app grid.
-
-### Using your own icon
-
-The icon theme searches `$XDG_DATA_HOME` before the system directories, so
-dropping a file in `~/.local/share/icons/` overrides the shipped one for your
-user, with no configuration and no rebuild:
-
-```bash
-mkdir -p ~/.local/share/icons/hicolor/symbolic/apps
-cp my-icon.svg ~/.local/share/icons/hicolor/symbolic/apps/montech-hyperflow-symbolic.svg
-gtk-update-icon-cache -f -t ~/.local/share/icons/hicolor
-```
-
-The names the tray looks for, in order:
-
-| Purpose | Names tried |
-|---|---|
-| panel, running | `montech-hyperflow-symbolic`, `montech-hyperflow` |
-| panel, stopped | `montech-hyperflow-idle-symbolic`, `montech-hyperflow-idle`, then the running names |
-| About dialog | `montech-hyperflow` |
-
-A file you place there is yours and stays on your machine. Note that this
-project cannot ship a manufacturer's logo as its icon — see
-[`NOTICE.md`](NOTICE.md) — but nothing stops you using one locally.
-
-## Usage
+`montech-hyperflow-tray` puts the temperature in your top bar, with the
+things worth having one click away:
 
 ```
-montech-hyperflow [--source cpu|gpu] [--sensor PATH] [--gpu-index N]
-                  [--fahrenheit] [--interval SEC] [--rounding nearest|truncate]
-                  [--on-sensor-error hold|blank] [--sensor-error-blank-after SEC]
-                  [--device PATH] [--blank-on-exit] [--no-init] [--config PATH]
-                  [--list] [--status] [--blank] [--once]
-                  [--test-value C] [--test-level N] [--frame-len N] [--dry-run]
+  ┌─────────────────────────────────────┐
+  │  CPU  41 °C   (level 4)             │
+  │  /sys/class/hwmon/hwmon3/temp1_input│
+  │ ─────────────────────────────────── │
+  │  ● Celsius                          │
+  │  ○ Fahrenheit                       │
+  │ ─────────────────────────────────── │
+  │  ● Show CPU                         │
+  │  ○ Show GPU 0 - GeForce RTX 3090    │
+  │  ○ Show GPU 1 - GeForce RTX 3090 Ti │
+  │ ─────────────────────────────────── │
+  │  Stop display service               │
+  │  Blank the display now              │
+  └─────────────────────────────────────┘
 ```
+
+Each GPU is listed by name, because "Show GPU" is meaningless on a two-card
+machine. Settings are written through polkit, so expect one authentication
+prompt.
+
+The tray is a **client**. It never opens the device — the service owns that,
+so the display keeps working when you log out or sit at the login screen.
+
+> **GNOME:** tray icons need the *AppIndicator and KStatusNotifierItem*
+> extension. Ubuntu enables it by default; on stock GNOME install
+> `gnome-shell-extension-appindicator`.
+
+## Everyday use
 
 ```bash
 montech-hyperflow --list                       # devices, permissions, sensors
-montech-hyperflow --status                     # what the running daemon is doing
-montech-hyperflow --dry-run                    # print frames, write nothing
-montech-hyperflow --test-value 123             # hold a known number on the head
-montech-hyperflow --blank                      # one-shot clear, then exit
+montech-hyperflow --status                     # what the running service is doing
+montech-hyperflow --fahrenheit                 # °F
 montech-hyperflow --source gpu --gpu-index 1   # second GPU
+montech-hyperflow --blank                      # clear the display
+montech-hyperflow --dry-run                    # print frames, write nothing
 ```
 
-`--test-value` is always in **Celsius** — it is the encoder's input, so with
-`--fahrenheit` the head shows the converted number. It bypasses sensor
-selection entirely, so you can test a display on a machine whose sensors are
-broken.
+Settings live in `~/.config/montech-hyperflow.conf` or
+`/etc/montech-hyperflow.conf` — see
+[the annotated example](packaging/montech-hyperflow.conf.example). Flags
+always beat the file.
 
-### Configuration
+## Things that might surprise you
 
-`~/.config/montech-hyperflow.conf`, then `/etc/montech-hyperflow.conf`. See
-[`packaging/montech-hyperflow.conf.example`](packaging/montech-hyperflow.conf.example).
-Command-line flags always override the file.
+**The bar only fills at 90 °C.** The ten-segment bar is `°C ÷ 10`, so idling
+at 35 °C lights three segments. It's a coarse thermometer, not a load meter.
+That's the vendor's design, confirmed on hardware.
 
-### Exit codes
+**In °F the bar still follows Celsius.** At 50 °C the head reads `122 °F`
+with the bar at five segments, not nine. The vendor computes the bar *before*
+converting, and this driver reproduces that deliberately.
+[Confirmed on hardware](docs/PROTOCOL.md); please don't "fix" it.
 
-| Code | Meaning |
-|---|---|
-| 0 | clean exit |
-| 1 | transient failure (device gone at startup) |
-| 78 | permanent misconfiguration — bad config, no sensor, no permission |
+**Above 93 °C, °F mode always reads `199`.** 93 °C is 199 °F and the vendor
+clamps there.
 
-The unit sets `RestartPreventExitStatus=78`, so a misconfiguration fails
-visibly instead of restart-looping forever.
+**A dead sensor never shows `0`.** Zero is a real temperature. The driver
+holds the last good reading, then blanks.
+
+**Unplugging is fine.** The daemon rediscovers the device — even under a new
+`/dev/hidrawN` — and reopens with backoff.
+
+## Troubleshooting
+
+<details><summary><b><code>--list</code> finds nothing</b></summary>
+
+The pump head's internal USB header probably isn't connected to the
+motherboard. Check with `lsusb | grep 1a2c`.
+</details>
+
+<details><summary><b>"permission denied on /dev/hidrawN"</b></summary>
+
+You need to be in `plugdev`, and you need to have logged out and back in
+since being added:
+
+```bash
+id -nG | grep plugdev || sudo usermod -aG plugdev "$USER"
+```
+
+If the rule itself didn't take:
+
+```bash
+sudo udevadm control --reload
+sudo udevadm trigger --subsystem-match=hidraw --action=add
+```
+</details>
+
+<details><summary><b>"write failed: [Errno 32] Broken pipe"</b></summary>
+
+The firmware rejected the transfer — almost always a wrong frame length.
+Check `--list` reports a **64-byte frame** and don't pass `--frame-len`.
+</details>
+
+<details><summary><b>Nothing appears in the panel</b></summary>
+
+Check the GNOME AppIndicator extension is enabled, then run
+`montech-hyperflow-tray` in a terminal and read the errors.
+</details>
+
+<details><summary><b>The service won't start</b></summary>
+
+```bash
+systemctl status montech-hyperflow
+journalctl -u montech-hyperflow -n 30
+```
+
+Exit code **78** means a permanent misconfiguration — a bad config file, no
+sensor, or no permission. The service deliberately won't restart-loop on it.
+</details>
+
+## Which package should I use?
+
+This software needs a udev rule and a system service, which sandboxed formats
+can't install. That constrains the choice:
+
+| Format | Service + permissions | Tray | |
+|---|:---:|:---:|---|
+| **`.deb` / `.rpm` / Arch** | ✅ | ✅ | **Recommended** |
+| AppImage | ⚠️ | ✅ | Run `setup` once as root for device access |
+| Flatpak | ❌ | ✅ | Tray only; pair with a native daemon |
+| Snap | ⚠️ | ✅ | Needs `snap connect montech-hyperflow:hidraw` |
 
 ## How it works
 
 One 64-byte HID **feature** report per second, report ID `0x07`, on the
-`0xFF01` vendor collection of **interface 01**:
+vendor collection of interface 01:
 
 ```
-byte 0    0x07                      report ID
-byte 1    hundreds digit            of the displayed number
-byte 2    tens digit
-byte 3    ones digit
-byte 4    (level << 4) | unit       level = min(celsius // 10, 9)
-                                    unit: 0 = °C, 1 = °F
-byte 5    0 = CPU, 1 = GPU
+byte 0    0x07                     report ID
+byte 1    hundreds digit  ┐
+byte 2    tens digit      ├─ the number on the display
+byte 3    ones digit      ┘
+byte 4    (level << 4) | unit      level = °C ÷ 10, capped at 9  → the bar
+                                   unit: 0 = °C, 1 = °F          → the mark
+byte 5    0 = CPU, 1 = GPU                                       → the label
 6..63     0x00
 ```
 
-Write-only. Nothing to read back, no handshake.
+Write-only. No handshake, no checksum, nothing to read back.
 
-Three things are easy to get wrong here, and all three were wrong in this
-project's first draft:
+The protocol was recovered from the vendor's Windows app, corrected against
+the device's own HID report descriptor, and then **verified byte by byte
+against the physical display**. [`docs/PROTOCOL.md`](docs/PROTOCOL.md) records
+the confidence level of every claim and the `DeviceDriver.exe` address behind
+it; [`docs/EXPERIMENTS.md`](docs/EXPERIMENTS.md) is the experiment log.
 
-- **The report is 64 bytes, not 65.** The descriptor says `Report Count 0x3F`
-  — 63 data bytes plus the report-ID byte. Windows' `HidD_SetFeature` silently
-  truncates oversized buffers, which hid the vendor app's own off-by-one;
-  Linux does not truncate, so a 65-byte frame is genuinely oversized on the
-  wire.
-- **In °F mode the digits are Fahrenheit but `level` is still derived from
-  Celsius.** The vendor computes it before the conversion. This is preserved
-  deliberately. Note also that 93 °C is 199 °F, and the vendor clamps at 199,
-  so in °F mode everything at or above 93 °C reads `199`.
-- **Do not identify the interface by substring-searching the descriptor.** A
-  report descriptor is a self-delimiting item stream; item *data* can spell
-  item *headers*. There is a test carrying a descriptor that fools the naive
-  check.
+### Why no dependencies
 
-## Behaviour worth knowing
+The daemon is pure Python standard library — no hidapi, no libusb, no pyudev,
+no D-Bus binding. It writes to `/dev/hidrawN` with one `ioctl`. GTK lives only
+in the tray package, so a headless machine never pulls it in.
 
-- **A failed sensor read never shows `0`.** `0` is a real temperature. The
-  driver holds the last good value and then blanks. With no reading ever
-  taken, it blanks immediately.
-- **Unplug/replug is survivable.** On write failure the daemon closes the fd,
-  rediscovers the device — which may come back as a different `hidrawN` — and
-  reopens with backoff, re-sending the startup command. `Restart=always` is
-  not needed and is not used.
-- **The frame length comes from the device**, read out of the report
-  descriptor at open time, not from a constant.
-
-## Permissions
-
-The udev rule grants `plugdev` write access to **interface 01 only** and tags
-it `uaccess` so the logged-in desktop user gets an ACL too.
-
-Two non-obvious things about it:
-
-- **The filename must sort before `73-seat-late.rules`**, which is where
-  systemd invokes the `uaccess` builtin. A `99-` name adds the tag *after* the
-  line that consumes it, so `uaccess` is silently ignored. Hence `72-`.
-- **`ATTRS{bInterfaceNumber}=="01"` does not work** for narrowing this rule.
-  All `ATTRS{}` keys in one rule must match a *single* parent, and
-  `idVendor`/`idProduct` live on the USB device node while `bInterfaceNumber`
-  lives on the interface node. `ENV{ID_USB_INTERFACE_NUM}` is a property of
-  the hidraw device itself and composes freely.
-
-Narrowing matters: this device's **interface 00 is a real boot-keyboard
-interface**. Granting group read on its node would let anyone in `plugdev`
-read what it reports.
-
-You must be in `plugdev`. If you just added yourself, log out and back in.
-
-## Which package should I use?
-
-| Format | Daemon + udev + service | Tray | Notes |
-|---|---|---|---|
-| `.deb` / `.rpm` / Arch | ✅ | ✅ | **Recommended.** The only formats that can install a udev rule and a system unit properly. |
-| AppImage | ⚠️ tray only | ✅ | Run `montech-hyperflow-setup` once as root for the udev rule; no system service. |
-| Flatpak | ❌ | ✅ | Sandboxed; needs `--device=all`, cannot install udev rules or system units. Pair with a native daemon. |
-| Snap | ⚠️ | ✅ | `hidraw` interface must be connected manually: `snap connect montech-hyperflow:hidraw`. |
-
-If you just want it to work: install the native package for your distro.
-
-## Troubleshooting
-
-**`--list` finds nothing.** The internal USB header is probably not connected.
-`lsusb | grep 1a2c` — the device presents as `SEMICO USB Gaming Keyboard`,
-which is a generic OEM string, not a mistake.
-
-**`write failed: [Errno 32] Broken pipe`.** The firmware stalled the control
-transfer. Almost always a wrong frame length: check `--list` reports a 64-byte
-frame and do not pass `--frame-len`.
-
-**Nothing in the panel.** Check the GNOME AppIndicator extension is enabled,
-then run `montech-hyperflow-tray` in a terminal and read the errors.
-
-**The head shows a number, but the wrong one.** Run
-`montech-hyperflow --dry-run --test-value 123 --once` and compare the bytes
-against the table above before changing anything.
-
-## Development
-
-```bash
-make test     # hardware-free unit tests
-make lint     # compile, udev rule syntax, desktop file, polkit XML, shell
-make deb      # build a package locally
-```
-
-Layout:
-
-| Path | What |
-|---|---|
-| `src/montech_hyperflow/` | the package; `tray/` is the only part importing GTK |
-| `tests/` | hardware-free tests |
-| `docs/PROTOCOL.md` | the protocol, with the verification status of every claim |
-| `docs/EXPERIMENTS.md` | the remaining hardware experiments, each ending in a question |
-| `packaging/` | udev, systemd, polkit, icons, and every package format |
+The tray reads a small JSON status file the daemon writes to `/run`, and
+drives the service through `systemctl`. No IPC protocol to go wrong, and you
+can `cat` the status yourself.
 
 ## Contributing
 
-Protocol findings are the most valuable contribution. If you run any of the
-experiments in `docs/EXPERIMENTS.md`, open an issue with what the head did —
-including a negative result. "Sweeping `level` changed nothing on my 360" is
-real data.
+The most valuable contribution is **running an experiment and reporting what
+the pump head did** — including negative results. "Sweeping `level` changed
+nothing on my 360" is real data. See
+[`CONTRIBUTING.md`](CONTRIBUTING.md).
 
-If you have a rebrand of this pump head that works, say so, and include
-`montech-hyperflow --list` output plus your `lsusb` line.
+Please don't send vendor binaries or vendor code.
+
+```bash
+make test     # 87 hardware-free tests
+make lint     # syntax, udev rule, desktop file, polkit XML, icons
+```
 
 ## License
 
-GPL-3.0-or-later. See [`LICENSE`](LICENSE) and [`NOTICE.md`](NOTICE.md).
+[GPL-3.0-or-later](LICENSE). See also [`NOTICE.md`](NOTICE.md) on naming,
+trademarks and reverse engineering.

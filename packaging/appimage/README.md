@@ -63,7 +63,7 @@ finish the job, then exits non-zero.
 
 The payload is architecture-independent, but the AppImage *runtime* stub that
 `appimagetool` prepends is not, so the filename carries `$ARCH`
-(`montech-hyperflow-0.3.0-x86_64.AppImage`). Set `ARCH` to cross-name it.
+(`montech-hyperflow-1.0.0-x86_64.AppImage`). Set `ARCH` to cross-name it.
 
 ## Running it
 
@@ -72,16 +72,16 @@ was invoked as (`ARGV0`, so symlinks work), then whether there are arguments
 at all.
 
 ```bash
-./montech-hyperflow-0.3.0-x86_64.AppImage                 # tray (also what a
+./montech-hyperflow-1.0.0-x86_64.AppImage                 # tray (also what a
                                                           # double-click does)
-./montech-hyperflow-0.3.0-x86_64.AppImage tray            # the same, explicit
-./montech-hyperflow-0.3.0-x86_64.AppImage --list          # CLI: any argument
-./montech-hyperflow-0.3.0-x86_64.AppImage cli --status    # CLI, explicit
-./montech-hyperflow-0.3.0-x86_64.AppImage help            # the mode list
-sudo ./montech-hyperflow-0.3.0-x86_64.AppImage setup      # one-time host setup
+./montech-hyperflow-1.0.0-x86_64.AppImage tray            # the same, explicit
+./montech-hyperflow-1.0.0-x86_64.AppImage --list          # CLI: any argument
+./montech-hyperflow-1.0.0-x86_64.AppImage cli --status    # CLI, explicit
+./montech-hyperflow-1.0.0-x86_64.AppImage help            # the mode list
+sudo ./montech-hyperflow-1.0.0-x86_64.AppImage setup      # one-time host setup
 
-ln -s montech-hyperflow-0.3.0-x86_64.AppImage montech-hyperflow-tray
-ln -s montech-hyperflow-0.3.0-x86_64.AppImage montech-hyperflow
+ln -s montech-hyperflow-1.0.0-x86_64.AppImage montech-hyperflow-tray
+ln -s montech-hyperflow-1.0.0-x86_64.AppImage montech-hyperflow
 ./montech-hyperflow-tray        # name decides: tray
 ./montech-hyperflow --once      # name decides: CLI
 ```
@@ -95,7 +95,7 @@ install, never one inside a squashfs mounted by the calling user.
 ## One-time host setup
 
 ```bash
-sudo ./montech-hyperflow-0.3.0-x86_64.AppImage setup
+sudo ./montech-hyperflow-1.0.0-x86_64.AppImage setup
 ```
 
 The pump head is a hidraw device. With no udev rule its `/dev/hidrawN` node is
@@ -131,11 +131,11 @@ nothing.**
 ## The working recipe
 
 ```bash
-sudo ./montech-hyperflow-0.3.0-x86_64.AppImage setup     # once
+sudo ./montech-hyperflow-1.0.0-x86_64.AppImage setup     # once
 # log out and back in, so the plugdev membership applies
-./montech-hyperflow-0.3.0-x86_64.AppImage --list         # should say "writable"
-./montech-hyperflow-0.3.0-x86_64.AppImage --source cpu --blank-on-exit &
-./montech-hyperflow-0.3.0-x86_64.AppImage tray
+./montech-hyperflow-1.0.0-x86_64.AppImage --list         # should say "writable"
+./montech-hyperflow-1.0.0-x86_64.AppImage --source cpu --blank-on-exit &
+./montech-hyperflow-1.0.0-x86_64.AppImage tray
 ```
 
 The tray does find that daemon, and this is worth understanding: the daemon
@@ -156,7 +156,7 @@ Description=Montech HyperFlow pump-head display (AppImage)
 
 [Service]
 Type=exec
-ExecStart=%h/Applications/montech-hyperflow-0.3.0-x86_64.AppImage cli --source cpu --blank-on-exit
+ExecStart=%h/Applications/montech-hyperflow-1.0.0-x86_64.AppImage cli --source cpu --blank-on-exit
 Restart=on-failure
 RestartSec=5
 # Exit 78 (EX_CONFIG) is a permanent misconfiguration; restarting cannot fix it.

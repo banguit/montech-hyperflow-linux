@@ -32,7 +32,7 @@ Recommends: systemd
 Suggests: montech-hyperflow-tray
 Description: unofficial Linux driver for the Montech HyperFlow AIO pump display
  Drives the 7-segment temperature display on the pump head of a Montech
- HyperFlow Digital 240/360 all-in-one liquid cooler. A small daemon reads a
+ HyperFlow Digital 241.0.0 all-in-one liquid cooler. A small daemon reads a
  hwmon sensor -- the CPU package by default, optionally the GPU -- and writes
  the value to the pump head over hidraw once a second. This package contains
  the daemon, the command-line tool, the udev rule, the systemd service and a

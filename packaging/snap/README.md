@@ -29,7 +29,7 @@ host-integration pieces described below.
 Install the result unsigned:
 
 ```bash
-sudo snap install --dangerous ./montech-hyperflow_0.3.0_amd64.snap
+sudo snap install --dangerous ./montech-hyperflow_1.0.0_amd64.snap
 ```
 
 ### Why `base: core22`
@@ -165,7 +165,7 @@ so **no snap has been built from this manifest**. What was actually checked:
 * `snapcraft.yaml` parses as YAML (PyYAML), and the key names, app names and
   part names are the ones written above;
 * the two `override-*` scripts pass `sh -n`;
-* the version-extraction `sed` returns `0.3.0`, matching `make version`;
+* the version-extraction `sed` returns `1.0.0`, matching `make version`;
 * `make install-core install-tray DESTDIR=… PREFIX=/usr` produces the layout
   the `command:` and `desktop:` paths point at
   (`usr/bin/montech-hyperflow`, `usr/bin/montech-hyperflow-tray`,

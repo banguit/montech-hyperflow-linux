@@ -33,8 +33,8 @@ The source format is `3.0 (quilt)`, so the build wants an upstream tarball
 next to the source tree. From a clean checkout:
 
 ```sh
-make tarball                                   # montech-hyperflow-0.3.0.tar.gz
-mv montech-hyperflow-0.3.0.tar.gz ../montech-hyperflow_0.3.0.orig.tar.gz
+make tarball                                   # montech-hyperflow-1.0.0.tar.gz
+mv montech-hyperflow-1.0.0.tar.gz ../montech-hyperflow_1.0.0.orig.tar.gz
 cp -r packaging/debian-source debian
 dpkg-buildpackage -us -uc                      # add -b for a binary-only build
 rm -rf debian                                  # it is a copy; do not commit it
@@ -43,15 +43,15 @@ rm -rf debian                                  # it is a copy; do not commit it
 The two `.deb`s and the `.dsc` land in the parent directory. Check them with:
 
 ```sh
-lintian ../montech-hyperflow_0.3.0-1_amd64.changes
-dpkg-deb -c ../montech-hyperflow_0.3.0-1_all.deb
-dpkg-deb -c ../montech-hyperflow-tray_0.3.0-1_all.deb
+lintian ../montech-hyperflow_1.0.0-1_amd64.changes
+dpkg-deb -c ../montech-hyperflow_1.0.0-1_all.deb
+dpkg-deb -c ../montech-hyperflow-tray_1.0.0-1_all.deb
 ```
 
 `DEB_BUILD_OPTIONS=nocheck` skips the test suite, which `dh_auto_test`
 otherwise runs through the Makefile's `test` target.
 
-To build native instead (no orig tarball, version `0.3.0` with no `-1`),
+To build native instead (no orig tarball, version `1.0.0` with no `-1`),
 change `source/format` to `3.0 (native)` and drop the Debian revision from
 `changelog`.
 

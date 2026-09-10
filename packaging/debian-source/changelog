@@ -1,4 +1,4 @@
-montech-hyperflow (0.3.0-1) unstable; urgency=medium
+montech-hyperflow (1.0.0-1) unstable; urgency=medium
 
   * Initial Debian packaging, split into montech-hyperflow (daemon, udev
     rule, systemd service, suspend hook) and montech-hyperflow-tray (panel

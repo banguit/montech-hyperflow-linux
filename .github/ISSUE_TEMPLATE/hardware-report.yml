@@ -91,7 +91,7 @@ body:
     attributes:
       label: Driver version
       description: "`montech-hyperflow --version`"
-      placeholder: "0.3.0"
+      placeholder: "1.0.0"
     validations:
       required: true
 

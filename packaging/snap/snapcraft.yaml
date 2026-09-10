@@ -23,7 +23,7 @@ title: Montech HyperFlow pump head
 summary: Unofficial Linux driver for the Montech HyperFlow pump-head display
 description: |
   UNOFFICIAL community driver for the 7-segment display on a Montech HyperFlow
-  Digital 240/360 AIO pump head. Not produced, endorsed or supported by
+  Digital 241.0.0 AIO pump head. Not produced, endorsed or supported by
   Montech. The vendor application is Windows-only; this is an independent
   Linux implementation of the wire protocol, documented from scratch. It
   contains no vendor code and no vendor artwork.
