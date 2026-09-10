@@ -32,7 +32,7 @@ make a result usable. Negative results are wanted.
 - [ ] Installed paths unchanged, **or** the layout assertions in
       `.github/workflows/ci.yml` were updated to match
 - [ ] Any new user-facing description still says this is an unofficial
-      community driver, not a Montech product
+      independently developed driver, not a Montech product
 - [ ] `__version__` not bumped (releases are cut separately)
 
 ## No vendor material

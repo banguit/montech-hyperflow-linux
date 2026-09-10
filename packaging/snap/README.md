@@ -1,6 +1,6 @@
 # Snap packaging
 
-> **Unofficial community driver.** Not produced, endorsed or supported by
+> **Unofficial, independently developed driver.** Not produced, endorsed or supported by
 > Montech. Hardware: USB **`1a2c:4e85`**, OEM platform **TCOMAS DH-C100**.
 > No vendor code or artwork is included. See [`NOTICE.md`](../../NOTICE.md).
 

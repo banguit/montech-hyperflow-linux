@@ -2,7 +2,7 @@ Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: montech-hyperflow
 Upstream-Contact: https://github.com/OWNER/montech-hyperflow-linux/issues
 Source: https://github.com/OWNER/montech-hyperflow-linux
-Disclaimer: montech-hyperflow is unofficial community software. It is not
+Disclaimer: montech-hyperflow is unofficial, independently developed software. It is not
  produced, endorsed, supported, reviewed or approved by Montech, by TCOMAS or
  by SEMICO. "Montech" and "HyperFlow" are the marks of their respective
  owners and are used here only to identify the hardware this software talks
@@ -26,7 +26,7 @@ Comment: These documents are original work. They describe the display's wire
  interoperate with another operating system. That is interoperability reverse
  engineering, the ordinary basis for Linux drivers for consumer hardware.
  .
- The result is a description written from scratch by the authors, not a copy
+ The result is a description written from scratch by the author, not a copy
  of anything: no vendor code, disassembly listing, decompiler output or
  vendor documentation is reproduced. Addresses inside the vendor binary are
  cited so that the claims can be verified independently, in the same way a

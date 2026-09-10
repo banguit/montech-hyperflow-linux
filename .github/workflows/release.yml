@@ -164,7 +164,7 @@ jobs:
           # v1.0.0-rc1 and friends are marked pre-release automatically.
           prerelease: ${{ contains(github.ref_name, '-') }}
           body: |
-            **Unofficial community driver** for the display on a Montech
+            **Unofficial, independently developed driver** for the display on a Montech
             HyperFlow Digital AIO pump head. Not produced, endorsed or
             supported by Montech, TCOMAS or SEMICO — see
             [`NOTICE.md`](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/NOTICE.md).

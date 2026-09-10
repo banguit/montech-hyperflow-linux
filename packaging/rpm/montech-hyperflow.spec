@@ -75,7 +75,7 @@ Requires(pre):  shadow-utils
 %{?systemd_requires}
 
 %description
-An unofficial, community-written Linux driver for the 7-segment display on the
+An unofficial, independently developed Linux driver for the 7-segment display on the
 pump head of a Montech HyperFlow Digital 241.0.0 all-in-one liquid cooler. It
 is NOT produced, endorsed, supported or approved by Montech, TCOMAS or SEMICO;
 do not contact them about it. "Montech" and "HyperFlow" are used here only to
@@ -118,7 +118,7 @@ Requires:       hicolor-icon-theme
 
 %description tray
 A GTK 3 / AppIndicator panel indicator for montech-hyperflow, the unofficial
-community driver for the Montech HyperFlow Digital AIO pump-head display
+independently developed driver for the Montech HyperFlow Digital AIO pump-head display
 (USB 1a2c:4e85, TCOMAS DH-C100 OEM platform). Not affiliated with, endorsed by
 or supported by Montech; all icons here are original work and no vendor
 artwork is used.

@@ -137,6 +137,6 @@ body:
             decompiler output or vendor artwork.
           required: true
         - label: >-
-            I understand this is an unofficial community driver, with no
+            I understand this is an unofficial, independently developed driver, with no
             warranty, and not supported by Montech.
           required: true

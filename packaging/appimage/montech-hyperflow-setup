@@ -1,7 +1,7 @@
 #!/bin/sh
 # montech-hyperflow-setup -- one-time host setup for the AppImage.
 #
-# UNOFFICIAL community driver for the Montech HyperFlow Digital pump-head
+# UNOFFICIAL, independently developed driver for the Montech HyperFlow Digital pump-head
 # display (USB 1a2c:4e85, OEM platform TCOMAS DH-C100). Not affiliated with
 # or endorsed by Montech.
 #

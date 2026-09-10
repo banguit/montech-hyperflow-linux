@@ -1,12 +1,12 @@
 <div align="center">
 
-# montech-hyperflow
+# montech-hyperflow-linux
 
-**Your Montech HyperFlow Digital's temperature display, working on Linux.**
+**A Linux driver for the Montech HyperFlow Digital's temperature display.**
 
-The pump head has a little screen. Montech only ships a Windows app to drive
-it. This drives it from Linux — as a background service, with a panel
-indicator, and with no dependencies beyond Python itself.
+The pump head has a little screen, and Montech only ships a Windows app to
+drive it. I reverse-engineered the protocol so it works on Linux: a background
+service, a panel indicator, and no dependencies beyond Python itself.
 
 [![license](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
 [![protocol](https://img.shields.io/badge/protocol-confirmed%20on%20hardware-brightgreen)](docs/PROTOCOL.md)
@@ -16,9 +16,10 @@ indicator, and with no dependencies beyond Python itself.
 
 ---
 
-> **This is not Montech software.** It is an unofficial community driver,
-> written from scratch, not affiliated with or endorsed by Montech. See
-> [`NOTICE.md`](NOTICE.md).
+> **This is not Montech software.** I wrote it to make my own cooler work on
+> Linux and published it in case it is useful to someone else. It is
+> unofficial, written from scratch, and not affiliated with or endorsed by
+> Montech. See [`NOTICE.md`](NOTICE.md).
 
 ## Does this work with my cooler?
 

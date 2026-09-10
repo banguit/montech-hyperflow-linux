@@ -2,11 +2,12 @@
 
 ## This is not Montech software
 
-**montech-hyperflow is an unofficial, community-written Linux driver.** It is
-not produced, endorsed, supported, reviewed or approved by Montech, by TCOMAS,
-or by SEMICO. Do not contact any of them about it. If it breaks your cooler's
-display, that is this project's fault, not theirs — and equally, this project
-comes with no warranty of any kind (see `LICENSE`, sections 15 and 16).
+**montech-hyperflow is not Montech software.** It is an unofficial Linux
+driver I wrote to make my own cooler work, published in case it is useful to
+someone else. It is not produced, endorsed, supported, reviewed or approved by
+Montech, by TCOMAS, or by SEMICO — do not contact any of them about it. If it
+breaks your cooler's display that is my fault, not theirs, and it comes with
+no warranty of any kind (see `LICENSE`, sections 15 and 16).
 
 "Montech" and "HyperFlow" are the marks of their respective owners. They are
 used here only to say **which hardware this software talks to**, which is the
@@ -38,14 +39,14 @@ unauthenticated HID feature report from anyone who can open the device node.
 
 ## If you are Montech, TCOMAS or SEMICO
 
-You are welcome here. Two things would be genuinely useful, and both would let
-this project delete a lot of guesswork:
+You are welcome here. This is one person's project, not an organisation, and
+two things would be genuinely useful:
 
 1. Confirmation or correction of `docs/PROTOCOL.md` — particularly what the
    `level` nibble and byte 5 actually drive on the pump head.
 2. Whether you would prefer different wording anywhere in this repository.
 
 Open an issue. If there is a specific, concrete concern about naming or
-presentation, the maintainers intend to address it rather than argue about it.
+presentation, I will address it rather than argue about it.
 
 *This file is a statement of intent and practice, not legal advice.*

@@ -1,6 +1,6 @@
 # Contributing
 
-**This is an unofficial community driver.** It is not produced, endorsed or
+**This is an unofficial, independently developed driver.** It is not produced, endorsed or
 supported by Montech, TCOMAS or SEMICO — see [`NOTICE.md`](NOTICE.md). Please
 keep that framing in anything you write here, including package descriptions.
 

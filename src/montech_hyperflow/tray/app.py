@@ -377,7 +377,7 @@ class TrayApp:
         dialog.set_version(__version__)
         dialog.set_comments(
             "Drives the 7-segment display on a Montech HyperFlow Digital "
-            "AIO pump head.\n\nUnofficial community driver, not affiliated "
+            "AIO pump head.\n\nUnofficial and independently developed. Not affiliated "
             "with or endorsed by Montech.\nHardware: USB 1a2c:4e85, OEM "
             "platform TCOMAS DH-C100.")
         dialog.set_license_type(Gtk.License.GPL_3_0)

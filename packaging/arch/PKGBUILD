@@ -101,7 +101,7 @@ package_montech-hyperflow() {
 	# The disclaimer is required and namcap will warn that this exceeds the
 	# 80-character guideline. Do not resolve that warning by trimming the
 	# "unofficial / not affiliated" wording.
-	pkgdesc='Unofficial Linux driver for the Montech HyperFlow Digital AIO pump-head display (USB 1a2c:4e85, TCOMAS DH-C100 platform) - a community project, not affiliated with or endorsed by Montech'
+	pkgdesc='Unofficial Linux driver for the Montech HyperFlow Digital AIO pump-head display (USB 1a2c:4e85, TCOMAS DH-C100 platform) - independently developed, not affiliated with or endorsed by Montech'
 	depends=('python' 'systemd')
 	optdepends=(
 		'montech-hyperflow-tray: panel indicator for the desktop'
@@ -141,7 +141,7 @@ package_montech-hyperflow() {
 }
 
 package_montech-hyperflow-tray() {
-	pkgdesc='Panel indicator for the unofficial Montech HyperFlow Digital AIO pump-head display driver - a community project, not affiliated with or endorsed by Montech'
+	pkgdesc='Panel indicator for the unofficial Montech HyperFlow Digital AIO pump-head display driver - independently developed, not affiliated with or endorsed by Montech'
 	# Exact-version dependency: the tray ships no Python code of its own and
 	# imports montech_hyperflow from the core package's private libdir, so the
 	# two must move together.

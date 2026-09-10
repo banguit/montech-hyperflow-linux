@@ -173,7 +173,7 @@ jobs:
             if grep -qi 'unofficial' "$f"; then
               echo "ok        $f"
             else
-              echo "::error file=$f::description does not say this is an unofficial community driver"
+              echo "::error file=$f::description does not carry the 'unofficial' disclaimer"
               missing=1
             fi
           done

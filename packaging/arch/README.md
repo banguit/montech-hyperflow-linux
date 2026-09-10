@@ -12,7 +12,7 @@ contains no Python of its own — it imports `montech_hyperflow` from the core
 package's private libdir, which is why it depends on an exact
 `montech-hyperflow=$pkgver-$pkgrel`.
 
-> **This is an unofficial community driver.** It is not affiliated with,
+> **This is an unofficial, independently developed driver.** It is not affiliated with,
 > authorised by, or endorsed by Montech. It targets the pump-head display that
 > enumerates as USB `1a2c:4e85` (OEM platform TCOMAS DH-C100), so rebrands of
 > the same hardware work too. No vendor artwork is shipped.

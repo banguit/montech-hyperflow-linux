@@ -14,4 +14,4 @@ contact_links:
     about: Not sure whether your cooler is the same hardware, or whether something is a bug? Ask here.
   - name: This is not Montech software
     url: https://github.com/OWNER/montech-hyperflow-linux/blob/main/NOTICE.md
-    about: An unofficial community driver. Do not contact Montech, TCOMAS or SEMICO about it.
+    about: An unofficial, independently developed driver. Do not contact Montech, TCOMAS or SEMICO about it.

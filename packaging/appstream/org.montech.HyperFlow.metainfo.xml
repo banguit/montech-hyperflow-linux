@@ -40,7 +40,7 @@
     <p>
       Montech HyperFlow Display drives the 7-segment temperature readout on a
       Montech HyperFlow Digital AIO pump head from Linux. It is an unofficial,
-      community-written driver: not produced, endorsed, supported, reviewed or
+      independently developed driver: not produced, endorsed, supported, reviewed or
       approved by Montech, by TCOMAS, or by SEMICO. Do not contact any of them
       about it. The names are used only to say which hardware it talks to.
     </p>
