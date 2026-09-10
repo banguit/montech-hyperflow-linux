@@ -1,0 +1,62 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: montech-hyperflow
+Upstream-Contact: https://github.com/OWNER/montech-hyperflow/issues
+Source: https://github.com/OWNER/montech-hyperflow
+Disclaimer: montech-hyperflow is unofficial community software. It is not
+ produced, endorsed, supported, reviewed or approved by Montech, by TCOMAS or
+ by SEMICO. "Montech" and "HyperFlow" are the marks of their respective
+ owners and are used here only to identify the hardware this software talks
+ to (USB 1a2c:4e85, OEM platform TCOMAS DH-C100), which is the only way to
+ identify it accurately.
+Comment: No vendor material of any kind is redistributed here: no code, no
+ binaries, no firmware, no images, no fonts and no strings. Everything in
+ this source package is original work by the montech-hyperflow contributors.
+
+Files: *
+Copyright: 2025-2026 montech-hyperflow contributors
+License: GPL-3.0-or-later
+
+Files: docs/PROTOCOL.md
+       docs/EXPERIMENTS.md
+Copyright: 2025-2026 montech-hyperflow contributors
+License: GPL-3.0-or-later
+Comment: These documents are original work. They describe the display's wire
+ format as it was recovered by disassembling the vendor's freely distributed
+ Windows application, for the sole purpose of making the hardware
+ interoperate with another operating system. That is interoperability reverse
+ engineering, the ordinary basis for Linux drivers for consumer hardware.
+ .
+ The result is a description written from scratch by the authors, not a copy
+ of anything: no vendor code, disassembly listing, decompiler output or
+ vendor documentation is reproduced. Addresses inside the vendor binary are
+ cited so that the claims can be verified independently, in the same way a
+ paper cites a source it does not reprint. The device applies no
+ authentication, signing or access control to the display, so nothing was
+ decrypted, unlocked or circumvented to obtain any of it.
+
+Files: packaging/icons/*
+Copyright: 2025-2026 montech-hyperflow contributors
+License: GPL-3.0-or-later
+Comment: Original artwork. No vendor logo, product render or other vendor
+ artwork is included, referenced or imitated.
+
+Files: debian/*
+Copyright: 2025-2026 montech-hyperflow contributors
+License: GPL-3.0-or-later
+
+License: GPL-3.0-or-later
+ This program is free software: you can redistribute it and/or modify it
+ under the terms of the GNU General Public License as published by the Free
+ Software Foundation, either version 3 of the License, or (at your option)
+ any later version.
+ .
+ This program is distributed in the hope that it will be useful, but WITHOUT
+ ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+ more details.
+ .
+ You should have received a copy of the GNU General Public License along with
+ this program.  If not, see <https://www.gnu.org/licenses/>.
+ .
+ On Debian systems, the complete text of the GNU General Public License
+ version 3 can be found in "/usr/share/common-licenses/GPL-3".

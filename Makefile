@@ -57,7 +57,7 @@ lint:
 	PYTHONPATH=src $(PYTHON) -m compileall -q src tests
 	@command -v udevadm >/dev/null && udevadm verify packaging/udev/*.rules || echo "  (udevadm verify unavailable)"
 	@command -v desktop-file-validate >/dev/null && desktop-file-validate packaging/desktop/*.desktop || echo "  (desktop-file-validate unavailable)"
-	@$(PYTHON) -c "import xml.dom.minidom as m;m.parse('packaging/polkit/org.montech.hyperflow.policy');print('  polkit policy OK')"
+	@$(PYTHON) -c "import xml.dom.minidom as m;m.parse('packaging/polkit/org.montech.hyperflow.policy.in');print('  polkit policy OK')"
 	@for f in packaging/icons/*/apps/*.svg; do $(PYTHON) -c "import xml.dom.minidom,sys;xml.dom.minidom.parse(sys.argv[1])" "$$f" || exit 1; done; echo "  icons OK"
 	@sh -n packaging/systemd/montech-hyperflow-sleep && echo "  sleep hook OK"
 
@@ -98,7 +98,10 @@ install-desktop:
 
 install-polkit:
 	$(INSTALL) -d $(DESTDIR)$(POLKITDIR)
-	$(INSTALL) -m 0644 packaging/polkit/org.montech.hyperflow.policy $(DESTDIR)$(POLKITDIR)/
+	sed -e 's|@BINDIR@|$(BINDIR)|g' \
+	    packaging/polkit/org.montech.hyperflow.policy.in \
+	    > $(DESTDIR)$(POLKITDIR)/org.montech.hyperflow.policy
+	chmod 0644 $(DESTDIR)$(POLKITDIR)/org.montech.hyperflow.policy
 
 install-udev:
 	$(INSTALL) -d $(DESTDIR)$(UDEVDIR)
@@ -106,7 +109,10 @@ install-udev:
 
 install-unit:
 	$(INSTALL) -d $(DESTDIR)$(UNITDIR) $(DESTDIR)$(SLEEPDIR)
-	$(INSTALL) -m 0644 packaging/systemd/$(NAME).service $(DESTDIR)$(UNITDIR)/
+	sed -e 's|@BINDIR@|$(BINDIR)|g' -e 's|@DOCDIR@|$(DOCDIR)|g' \
+	    packaging/systemd/$(NAME).service.in \
+	    > $(DESTDIR)$(UNITDIR)/$(NAME).service
+	chmod 0644 $(DESTDIR)$(UNITDIR)/$(NAME).service
 	$(INSTALL) -m 0755 packaging/systemd/$(NAME)-sleep $(DESTDIR)$(SLEEPDIR)/$(NAME)
 
 install-doc:

@@ -1,0 +1,197 @@
+#!/bin/sh
+# montech-hyperflow-setup -- one-time host setup for the AppImage.
+#
+# UNOFFICIAL community driver for the Montech HyperFlow Digital pump-head
+# display (USB 1a2c:4e85, OEM platform TCOMAS DH-C100). Not affiliated with
+# or endorsed by Montech.
+#
+# An AppImage cannot install anything outside itself, but the pump head is a
+# hidraw device: with no udev rule its /dev/hidrawN node is root-only (0600)
+# and the driver cannot open it. This script installs that one rule, makes
+# sure the group it names exists, and puts you in it.
+#
+#   sudo ./montech-hyperflow-0.3.0-x86_64.AppImage setup
+#
+# It does NOT install, enable or start any service. Nothing it does starts at
+# boot. It is safe to run again: every step checks first.
+set -eu
+
+RULE_NAME=72-montech-hyperflow.rules
+RULE_DEST=/etc/udev/rules.d/$RULE_NAME
+GROUP=plugdev
+
+# $APPIMAGE is exported by the AppImage runtime and is the path the user
+# actually typed, so every command this script prints can be copied as-is.
+# Reached some other way (an extracted AppDir, a copy of this file), fall back
+# to $0 and stop pretending there is an AppImage to pass "setup" to.
+if [ -n "${APPIMAGE:-}" ]; then
+    APP_LABEL=$APPIMAGE
+    SELF_LABEL="$APPIMAGE setup"
+else
+    APP_LABEL="./montech-hyperflow-*.AppImage"
+    SELF_LABEL=$0
+fi
+
+usage() {
+    cat <<EOF
+usage: sudo $SELF_LABEL [USER]
+
+Installs $RULE_DEST, creates the "$GROUP" group if the distro does not have
+one, and adds USER to it. USER defaults to the account that invoked sudo or
+pkexec. Installs no service and enables nothing.
+EOF
+}
+
+case "${1:-}" in
+    -h|--help|help) usage; exit 0 ;;
+esac
+
+if [ "$(id -u)" -ne 0 ]; then
+    echo "montech-hyperflow-setup: must be run as root -- it writes" >&2
+    echo "$RULE_DEST and changes group membership." >&2
+    echo >&2
+    echo "  sudo $SELF_LABEL" >&2
+    exit 1
+fi
+
+# Where the rule comes from. Reading the shipped file rather than embedding a
+# copy here means this can never drift from packaging/udev/, which is the one
+# place the rule is maintained.
+here=$(dirname "$(readlink -f "$0")")
+rule_src=
+for candidate in \
+    "${MONTECH_UDEV_RULE:-}" \
+    "${APPDIR:-}/etc/udev/rules.d/$RULE_NAME" \
+    "$here/../../etc/udev/rules.d/$RULE_NAME" \
+    "$here/$RULE_NAME" \
+    "$here/../../../packaging/udev/$RULE_NAME"
+do
+    [ -n "$candidate" ] && [ -f "$candidate" ] || continue
+    rule_src=$candidate
+    break
+done
+
+if [ -z "$rule_src" ]; then
+    echo "montech-hyperflow-setup: cannot find $RULE_NAME." >&2
+    echo "Run this through the AppImage (sudo <appimage> setup), or point" >&2
+    echo "MONTECH_UDEV_RULE at packaging/udev/$RULE_NAME from the source." >&2
+    exit 1
+fi
+
+# Who to put in the group. sudo and pkexec each report the caller differently,
+# and neither is set when root runs this from a root login shell.
+target_user=${1:-}
+if [ -z "$target_user" ] && [ -n "${PKEXEC_UID:-}" ]; then
+    target_user=$(id -nu "$PKEXEC_UID" 2>/dev/null || true)
+fi
+if [ -z "$target_user" ] && [ -n "${SUDO_USER:-}" ]; then
+    target_user=$SUDO_USER
+fi
+if [ -n "$target_user" ] && ! id -u "$target_user" >/dev/null 2>&1; then
+    echo "montech-hyperflow-setup: no such user: $target_user" >&2
+    exit 1
+fi
+
+did=""            # what changed, reported at the end
+group_created=no
+group_added=no
+
+note() { did="$did  - $1
+"; }
+
+# 1. The group first. The rule says GROUP="$GROUP"; udev resolves that name
+#    when the event fires, so the group has to exist before the trigger below
+#    or the freshly re-added node gets the wrong ownership. Debian and Ubuntu
+#    ship plugdev; Fedora and Arch frequently do not.
+if getent group "$GROUP" >/dev/null 2>&1; then
+    echo "group $GROUP: already exists"
+else
+    if command -v groupadd >/dev/null 2>&1; then
+        groupadd -r "$GROUP"
+        group_created=yes
+        echo "group $GROUP: created (system group)"
+        note "created the system group \"$GROUP\""
+    else
+        echo "montech-hyperflow-setup: no $GROUP group and no groupadd." >&2
+        echo "Create the group by hand, then run this again." >&2
+        exit 1
+    fi
+fi
+
+# 2. The rule.
+if [ -f "$RULE_DEST" ] && cmp -s "$rule_src" "$RULE_DEST"; then
+    echo "udev rule: $RULE_DEST already current"
+else
+    install -d -m 0755 /etc/udev/rules.d
+    install -m 0644 "$rule_src" "$RULE_DEST"
+    echo "udev rule: installed $RULE_DEST"
+    note "installed $RULE_DEST (from $rule_src)"
+fi
+
+# 3. Apply it. `udevadm control --reload` on its own only affects devices that
+#    show up afterwards, so the already-enumerated pump head needs an explicit
+#    add trigger.
+if command -v udevadm >/dev/null 2>&1; then
+    udevadm control --reload
+    udevadm trigger --subsystem-match=hidraw --action=add
+    udevadm settle || true
+    echo "udev: reloaded and re-triggered hidraw"
+else
+    echo "udev: udevadm not found -- reboot to apply the rule" >&2
+fi
+
+# 4. Group membership. The rule's TAG+="uaccess" already covers a logged-in
+#    seat session on a systemd desktop; the group is the fallback that makes
+#    ssh sessions and user services work too.
+if [ -z "$target_user" ]; then
+    echo "group membership: no user to add (run as \"sudo <appimage> setup\"," \
+         "or pass a username)"
+elif id -nG "$target_user" 2>/dev/null | tr ' ' '\n' | grep -qx "$GROUP"; then
+    echo "group membership: $target_user is already in $GROUP"
+else
+    if command -v gpasswd >/dev/null 2>&1; then
+        gpasswd -a "$target_user" "$GROUP" >/dev/null
+    else
+        usermod -aG "$GROUP" "$target_user"
+    fi
+    group_added=yes
+    echo "group membership: added $target_user to $GROUP"
+    note "added user \"$target_user\" to the \"$GROUP\" group"
+fi
+
+echo
+if [ -z "$did" ]; then
+    echo "Nothing to do -- this host was already set up."
+else
+    echo "Changed:"
+    printf '%s' "$did"
+fi
+
+echo
+echo "Not done, on purpose:"
+echo "  - no service was installed, enabled or started"
+echo "  - no suspend hook and no polkit action (the AppImage has no way to"
+echo "    install those; use the distro package if you want them)"
+
+echo
+echo "Next:"
+if [ "$group_added" = yes ]; then
+    echo "  - log out and back in, or run 'newgrp $GROUP', before the new"
+    echo "    group membership takes effect in your session"
+fi
+echo "  - check the device is visible and writable:"
+echo "      $APP_LABEL cli --list"
+echo "  - drive the display (foreground; Ctrl-C stops it and blanks the head):"
+echo "      $APP_LABEL cli --source cpu --blank-on-exit"
+
+echo
+echo "To undo everything this script does:"
+echo "  sudo rm -f $RULE_DEST"
+echo "  sudo udevadm control --reload"
+echo "  sudo udevadm trigger --subsystem-match=hidraw --action=add"
+if [ -n "$target_user" ]; then
+    echo "  sudo gpasswd -d $target_user $GROUP"
+fi
+if [ "$group_created" = yes ]; then
+    echo "  sudo groupdel $GROUP    # only if nothing else on this host uses it"
+fi

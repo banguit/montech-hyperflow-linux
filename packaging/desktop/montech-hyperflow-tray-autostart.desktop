@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
 Name=Montech HyperFlow tray
-Comment=Show the AIO pump-head temperature in the panel
+Comment=Show the AIO pump-head temperature in the panel (unofficial driver, not affiliated with Montech)
 Exec=montech-hyperflow-tray
 Icon=montech-hyperflow
 Terminal=false

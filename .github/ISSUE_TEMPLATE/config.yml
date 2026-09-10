@@ -1,0 +1,17 @@
+# Blank issues stay enabled on purpose: there is no template for an ordinary
+# bug or a packaging problem, and forcing those through the hardware forms
+# would collect the wrong fields and put people off filing at all.
+blank_issues_enabled: true
+contact_links:
+  - name: Read the protocol notes first
+    url: https://github.com/OWNER/montech-hyperflow/blob/main/docs/PROTOCOL.md
+    about: Every claim about the wire format, with its confidence level and the evidence behind it.
+  - name: Pick an experiment to run
+    url: https://github.com/OWNER/montech-hyperflow/blob/main/docs/EXPERIMENTS.md
+    about: The open questions, written up so anyone with the cooler can answer one in ten minutes.
+  - name: Questions and discussion
+    url: https://github.com/OWNER/montech-hyperflow/discussions
+    about: Not sure whether your cooler is the same hardware, or whether something is a bug? Ask here.
+  - name: This is not Montech software
+    url: https://github.com/OWNER/montech-hyperflow/blob/main/NOTICE.md
+    about: An unofficial community driver. Do not contact Montech, TCOMAS or SEMICO about it.

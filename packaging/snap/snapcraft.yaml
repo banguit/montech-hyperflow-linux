@@ -1,0 +1,187 @@
+# Snap packaging for montech-hyperflow.
+#
+# UNOFFICIAL community driver for the display on a Montech HyperFlow Digital
+# AIO pump head (USB 1a2c:4e85, OEM platform TCOMAS DH-C100). Not produced,
+# endorsed or supported by Montech. No vendor artwork is included.
+#
+# READ packaging/snap/README.md BEFORE USING THIS. Strict confinement removes
+# most of what this driver depends on: the udev rule, the systemd system unit,
+# the suspend hook and the polkit action cannot be installed from a snap, and
+# on a classic desktop there is normally no `hidraw` slot to connect the plug
+# to. On a normal desktop, install the distro package or run
+# `sudo make install`. This snap is aimed at Ubuntu Core / appliance images
+# where a gadget snap declares a hidraw slot for this device.
+#
+# Build: snapcraft looks for `snap/snapcraft.yaml` under the project root, so
+# from the top of the source tree:
+#
+#     ln -s packaging/snap snap
+#     snapcraft
+
+name: montech-hyperflow
+title: Montech HyperFlow pump head
+summary: Unofficial Linux driver for the Montech HyperFlow pump-head display
+description: |
+  UNOFFICIAL community driver for the 7-segment display on a Montech HyperFlow
+  Digital 240/360 AIO pump head. Not produced, endorsed or supported by
+  Montech. The vendor application is Windows-only; this is an independent
+  Linux implementation of the wire protocol, documented from scratch. It
+  contains no vendor code and no vendor artwork.
+
+  Hardware: USB 1a2c:4e85, OEM platform TCOMAS DH-C100. Rebrands of the same
+  pump head very likely work unchanged.
+
+  The driver reads a CPU (or GPU) temperature from hwmon and writes it to the
+  pump head over hidraw. The daemon is pure Python standard library; the
+  optional tray indicator is a read-only client of the daemon.
+
+  BEFORE YOU INSTALL THIS SNAP. A strictly confined snap cannot install a udev
+  rule, a systemd system unit, a system-sleep hook or a polkit action, and it
+  cannot read the host's /run or /etc. On a classic desktop the supported
+  install is the distro package, or `sudo make install` from the source tree.
+  This snap is useful where a gadget snap provides the hidraw slot.
+
+  After installing:
+
+      sudo snap connect montech-hyperflow:hidraw <gadget>:<slot>
+      sudo snap start --enable montech-hyperflow
+
+# Version comes from src/montech_hyperflow/__init__.py, the same single source
+# the Makefile reads.
+adopt-info: montech-hyperflow
+
+license: GPL-3.0-or-later
+icon: packaging/icons/scalable/apps/montech-hyperflow.svg
+website: https://github.com/OWNER/montech-hyperflow
+source-code: https://github.com/OWNER/montech-hyperflow
+issues: https://github.com/OWNER/montech-hyperflow/issues
+
+# base: core22, not core24.
+#
+#   * The UI is GTK 3 + AyatanaAppIndicator3. The `gnome` extension on core22
+#     pulls in the gnome-42-2204 platform snap, where GTK 3 is a first-class
+#     citizen; the core24 extension targets gnome-46-2404, which is GTK4-first.
+#     Nothing in this app wants a newer toolkit.
+#   * core22 is Ubuntu 22.04, so the interpreter is Python 3.10 -- comfortably
+#     above the 3.8 floor this package supports.
+#   * 22.04 is supported past the point where this driver stops being
+#     interesting, and every distro that ships snapd runs core22 today.
+base: core22
+confinement: strict
+grade: stable
+
+# The Python here is architecture-independent, but the snap is not: it stages
+# an interpreter and the appindicator libraries, both of which are compiled.
+# Build one per architecture.
+architectures:
+  - build-on: [amd64]
+    build-for: [amd64]
+  - build-on: [arm64]
+    build-for: [arm64]
+
+apps:
+  # `snap run montech-hyperflow` -- app name matches the snap name, so the
+  # command the user types is just `montech-hyperflow`.
+  montech-hyperflow:
+    command: usr/bin/montech-hyperflow --blank-on-exit
+    daemon: simple
+    # The service is opt-in, exactly as with the .deb and the RPM: installing
+    # the package must not start driving the user's hardware. Needs snapd
+    # 2.49 or newer.
+    install-mode: disable
+    restart-condition: on-failure
+    restart-delay: 5s
+    # There is no snapd equivalent of the system unit's
+    # RestartPreventExitStatus=78, so a permanent misconfiguration (exit 78,
+    # EX_CONFIG) restart-loops here instead of stopping. Check
+    # `snap logs montech-hyperflow` if the service will not settle.
+    plugs:
+      # Manual connection, always. See the README: on a classic desktop there
+      # is usually no slot on the other end.
+      - hidraw
+      # /sys/class/hwmon/**; without this the temperature source cannot be
+      # read and the daemon has nothing to display.
+      - hardware-observe
+    environment:
+      # The generated wrapper hardcodes /usr/lib/montech-hyperflow, which does
+      # not exist inside the snap (the base snap's /usr is what is mounted at
+      # /usr). A missing sys.path entry is harmless; PYTHONPATH supplies the
+      # real one.
+      PYTHONPATH: $SNAP/usr/lib/montech-hyperflow
+      # The daemon publishes status to /run/montech-hyperflow/status.json.
+      # AppArmor denies that path and snapd refuses layouts under /run, so
+      # point the code's documented fallback ($XDG_RUNTIME_DIR) somewhere the
+      # daemon can actually write. Safe here only because this app has no GUI:
+      # do NOT do this to the tray, which needs the real runtime dir to find
+      # the Wayland and D-Bus sockets.
+      XDG_RUNTIME_DIR: $SNAP_COMMON
+      # /etc/montech-hyperflow.conf is unreadable under confinement. Config
+      # for this snap lives in /var/snap/montech-hyperflow/common/
+      # montech-hyperflow.conf instead.
+      XDG_CONFIG_HOME: $SNAP_COMMON
+
+  # `snap run montech-hyperflow.tray`
+  tray:
+    command: usr/bin/montech-hyperflow-tray
+    # Supplies GTK 3, the GNOME platform snap, themes, fonts and the
+    # desktop/wayland/x11/gsettings/opengl plugs.
+    extensions: [gnome]
+    desktop: usr/share/applications/montech-hyperflow-tray.desktop
+    plugs:
+      # unity7 is what the extension does not add and the indicator needs: the
+      # legacy com.canonical.dbusmenu / AppIndicator path that panels other
+      # than a pure SNI implementation still use.
+      - unity7
+      # Listed explicitly even though the gnome extension adds them, so this
+      # file says what the app touches.
+      - desktop
+      - desktop-legacy
+      - wayland
+      - x11
+    environment:
+      # Setting PYTHONPATH at app level replaces the extension's value, so
+      # spell out dist-packages (python3-gi, the appindicator bindings) too.
+      PYTHONPATH: $SNAP/usr/lib/montech-hyperflow:$SNAP/usr/lib/python3/dist-packages
+
+parts:
+  montech-hyperflow:
+    plugin: nil
+    source: .
+    build-packages:
+      - make
+    stage-packages:
+      # core22 has no interpreter of its own. `python3` rather than
+      # python3-minimal: the driver uses argparse, configparser, json and
+      # glob, and only the full stdlib package is guaranteed to have them.
+      - python3
+    override-pull: |
+      craftctl default
+      craftctl set version="$(sed -n 's/^__version__ = "\(.*\)"/\1/p' \
+          src/montech_hyperflow/__init__.py)"
+    override-build: |
+      craftctl default
+      # The same DESTDIR/PREFIX contract every other package in this repo
+      # uses. install-core's reload-udev step is a no-op whenever DESTDIR is
+      # set, which is what makes it safe to call here.
+      make install-core install-tray \
+           DESTDIR="$CRAFT_PART_INSTALL" PREFIX=/usr
+      # Host-integration files a confined snap can neither install nor use.
+      # Shipping them would only mean a systemd unit, a udev rule and a polkit
+      # action sitting inside the squashfs doing nothing. Anyone who wants
+      # them on the host takes them from the source tree or the distro
+      # package.
+      rm -rf "$CRAFT_PART_INSTALL/etc/udev" \
+             "$CRAFT_PART_INSTALL/usr/lib/systemd" \
+             "$CRAFT_PART_INSTALL/usr/share/polkit-1"
+
+  tray-runtime:
+    # GTK 3 and its typelib come from the gnome-42-2204 platform snap that the
+    # `gnome` extension connects. Only what that platform does not carry is
+    # staged here. The extension already puts
+    # $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET/girepository-1.0 on GI_TYPELIB_PATH,
+    # so the staged appindicator typelib is found without further help.
+    plugin: nil
+    stage-packages:
+      - python3-gi
+      - gir1.2-ayatanaappindicator3-0.1
+      - libayatana-appindicator3-1

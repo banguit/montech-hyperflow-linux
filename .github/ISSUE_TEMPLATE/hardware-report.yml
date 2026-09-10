@@ -1,0 +1,142 @@
+name: Hardware report (does it work on your cooler?)
+description: Your pump head worked, half-worked or did not work. Rebrands of the same OEM platform especially wanted.
+title: "[hardware] "
+labels: ["hardware"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This driver was written against one cooler: USB `1a2c:4e85`, OEM
+        platform **TCOMAS DH-C100**. The same pump head is sold under other
+        brands, and the only way anyone finds out which is if owners say so.
+
+        **"It worked, nothing to report" is worth filing.** So is "it found
+        the device but the display never changed."
+
+        Everything below except the extra notes comes from two commands and
+        writes nothing to the device.
+
+  - type: dropdown
+    id: result
+    attributes:
+      label: What happened
+      options:
+        - "Works: the display tracks the temperature"
+        - "Partly works: the device is found and writable, but the display does not change"
+        - "Device found, but not writable (permissions)"
+        - "No matching device found at all"
+        - "The display shows something wrong (wrong digits, stuck, flickering)"
+        - "Something else"
+    validations:
+      required: true
+
+  - type: input
+    id: model
+    attributes:
+      label: Cooler as sold
+      description: Brand and model on the box, and the radiator size.
+      placeholder: "Montech HyperFlow Digital 360, or: <other brand> <model> (suspected rebrand)"
+    validations:
+      required: true
+
+  - type: input
+    id: lsusb
+    attributes:
+      label: The lsusb line
+      description: >-
+        `lsusb` and pick the line for the cooler. If the vendor ID is not
+        1a2c, that is exactly the sort of thing worth knowing — include it.
+      placeholder: "Bus 003 Device 014: ID 1a2c:4e85 China Resource Semico Co., Ltd USB Gaming Keyboard"
+    validations:
+      required: true
+
+  - type: textarea
+    id: list
+    attributes:
+      label: "`montech-hyperflow --list` output"
+      description: >-
+        The whole thing, including the sensor lines at the bottom. This writes
+        nothing to the device.
+      render: shell
+      placeholder: |
+        $ montech-hyperflow --list
+    validations:
+      required: true
+
+  - type: input
+    id: system
+    attributes:
+      label: Distro and kernel
+      description: "`. /etc/os-release; echo \"$PRETTY_NAME $(uname -r)\"`"
+      placeholder: "Ubuntu 24.04.2 LTS 6.8.0-60-generic"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install
+    attributes:
+      label: How you installed it
+      options:
+        - ".deb from the releases page"
+        - ".rpm from the releases page"
+        - "AUR / PKGBUILD"
+        - "AppImage"
+        - "make install from a git checkout"
+        - "Something else"
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Driver version
+      description: "`montech-hyperflow --version`"
+      placeholder: "0.3.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: tray
+    attributes:
+      label: The panel indicator
+      description: Only relevant if you installed the tray package.
+      options:
+        - "Not installed / not tried"
+        - "Works"
+        - "Installed but the icon never appears"
+        - "Icon appears but the controls do not work"
+    validations:
+      required: false
+
+  - type: textarea
+    id: journal
+    attributes:
+      label: Service log, if the service is what misbehaved
+      description: "`journalctl -u montech-hyperflow -b --no-pager | tail -50`"
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: >-
+        Sensor picked the wrong chip? Display blank after resume? Two coolers
+        on one machine? Say so here.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: acknowledgements
+    attributes:
+      label: Before you file
+      options:
+        - label: >-
+            I am attaching no vendor binaries, vendor code, firmware,
+            decompiler output or vendor artwork.
+          required: true
+        - label: >-
+            I understand this is an unofficial community driver, with no
+            warranty, and not supported by Montech.
+          required: true

@@ -1,0 +1,12 @@
+# Core: the daemon and everything a headless machine needs. Nothing listed
+# here imports GTK.
+usr/bin/montech-hyperflow
+usr/lib/montech-hyperflow/montech_hyperflow/*.py
+usr/lib/systemd/system/montech-hyperflow.service
+usr/lib/systemd/system-sleep/montech-hyperflow
+usr/lib/udev/rules.d/72-montech-hyperflow.rules
+usr/share/doc/montech-hyperflow/EXPERIMENTS.md
+usr/share/doc/montech-hyperflow/NOTICE.md
+usr/share/doc/montech-hyperflow/PROTOCOL.md
+usr/share/doc/montech-hyperflow/README.md
+usr/share/doc/montech-hyperflow/montech-hyperflow.conf.example

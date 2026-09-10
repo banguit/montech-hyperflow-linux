@@ -1,0 +1,299 @@
+# montech-hyperflow -- Flatpak manifest for the TRAY INDICATOR ONLY.
+#
+# READ packaging/flatpak/README.md BEFORE YOU BUILD OR SHIP THIS. The two
+# things that matter most:
+#
+#   1. This Flatpak does not contain a working driver and cannot become one.
+#      A Flatpak cannot install a udev rule or a systemd system unit, and
+#      those are what give the daemon access to /dev/hidraw* and make it run
+#      at boot. The native montech-hyperflow package must be installed on the
+#      host. Without it this Flatpak is a panel icon that permanently reads
+#      "Daemon not running".
+#
+#   2. The finish-args below are a full sandbox escape, on purpose, and the
+#      README explains why there is no honest way around it as the tray is
+#      currently written. Do not read the presence of a sandbox here as a
+#      security boundary.
+#
+# UNOFFICIAL COMMUNITY DRIVER. Not produced, endorsed or supported by Montech,
+# TCOMAS or SEMICO. Hardware: USB 1a2c:4e85, OEM platform TCOMAS DH-C100.
+
+id: org.montech.HyperFlow
+
+runtime: org.gnome.Platform
+# Pinned deliberately rather than tracking a moving branch. GNOME runtimes go
+# end-of-life roughly a year after release, and Flathub will start warning
+# about an EOL runtime long before it stops building. THIS WILL NEED BUMPING.
+# Check what is current with:
+#     flatpak remote-ls flathub --system | grep org.gnome.Platform
+# and re-run the whole build after changing it -- libdbusmenu in particular
+# has broken on GNOME runtime bumps before.
+runtime-version: '48'
+sdk: org.gnome.Sdk
+
+command: montech-hyperflow-tray
+
+finish-args:
+  # -- drawing the menu ------------------------------------------------
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+
+  # -- reading the daemon's status -------------------------------------
+  # The daemon publishes /run/montech-hyperflow/status.json atomically each
+  # tick and the tray reads it. Read-only is genuinely all that is needed:
+  # the tray never writes there.
+  - --filesystem=/run/montech-hyperflow:ro
+
+  # -- the session bus -------------------------------------------------
+  # Unfiltered, and it has to be. libayatana-appindicator owns a bus name of
+  # the form org.kde.StatusNotifierItem-<pid>-<n>. Flatpak's --own-name only
+  # understands exact names and `.*` subtrees, so a PID-derived name cannot
+  # be declared ahead of time. The tidy-looking alternative --
+  #     --talk-name=org.kde.StatusNotifierWatcher
+  #     --talk-name=org.ayatana.indicator.application
+  # -- lets the tray FIND the watcher but not register with it, and the icon
+  # silently never appears on most shells.
+  #
+  # Be clear about what this costs: full session-bus access already includes
+  # org.freedesktop.Flatpak, so this line on its own is a sandbox escape,
+  # independent of the next one.
+  - --socket=session-bus
+
+  # -- running host commands -------------------------------------------
+  # The Development portal, which is what flatpak-spawn --host uses. The tray
+  # controls the daemon with `systemctl` and `pkexec montech-hyperflow-admin`,
+  # and both of those only exist and only mean anything on the host.
+  #
+  # This grants arbitrary command execution outside the sandbox as the
+  # invoking user. It is the single most permissive thing a manifest can say.
+  # It is here because the alternative is a tray with three dead menu items;
+  # the README documents the read-only variant that drops it, and the D-Bus
+  # system service that would remove the need for it properly.
+  - --talk-name=org.freedesktop.Flatpak
+
+  # -- deliberately NOT granted ----------------------------------------
+  # --device=all      the tray never opens /dev/hidraw*; the daemon on the
+  #                   host owns the device, and two writers to one display
+  #                   fight at 1 Hz. (The top-level README's package table
+  #                   claims the Flatpak needs --device=all. It does not.)
+  # --share=network   nothing here talks to a network, ever.
+  # --filesystem=home no user files are read or written.
+
+cleanup:
+  - /include
+  - /lib/pkgconfig
+  - /lib/systemd
+  - /share/gtk-doc
+  - /share/man
+  - /share/vala
+  - '*.a'
+  - '*.la'
+
+modules:
+
+  # ---------------------------------------------------------------------
+  # AppIndicator stack.
+  #
+  # org.gnome.Platform ships GTK 3 and PyGObject but no indicator typelib at
+  # all, so the whole Ayatana chain has to be built here. Order matters:
+  # libdbusmenu -> libayatana-ido -> libayatana-indicator ->
+  # libayatana-appindicator.
+  #
+  # HONEST WARNING ABOUT THE FOUR MODULES BELOW: they were written without
+  # network access. The repository URLs, tags and buildsystems are from
+  # knowledge and have NOT been fetched or built. Verify each one before the
+  # first build. No commit hashes are pinned, which flatpak-builder accepts
+  # for a tag but Flathub's linter rejects -- see README, "Before submitting
+  # to Flathub".
+  #
+  # If you would rather vendor flathub/shared-modules: its
+  # libappindicator/libappindicator-gtk3-12.10.json provides the OLD
+  # AppIndicator3-0.1 typelib, not AyatanaAppIndicator3-0.1. That is fine for
+  # this app -- tray/app.py's _load_appindicator() falls back through
+  # AyatanaAppIndicatorGLib, AyatanaAppIndicator3 and AppIndicator3 in that
+  # order -- and it is a much better-trodden path than the four modules here.
+  # ---------------------------------------------------------------------
+
+  - name: libdbusmenu
+    # The fragile one. It is old autotools: it wants intltool, and its
+    # gtk-doc and Vala bits break more often than they build. Everything
+    # below except --with-gtk=3 and --enable-introspection exists to switch
+    # off something that is not needed.
+    buildsystem: autotools
+    config-opts:
+      - --with-gtk=3
+      - --enable-introspection
+      - --disable-static
+      - --disable-tests
+      - --disable-dumper
+      - --disable-vala
+      - --disable-gtk-doc
+      - --disable-scrollkeeper
+    # If this module is what breaks, the usual culprits, in order: a missing
+    # intltool in the SDK, the gtk-doc rules running despite --disable-gtk-doc,
+    # and a broken valgrind automake conditional (worked around elsewhere with
+    # a make arg of HAVE_VALGRIND_FALSE='#'). Not pre-applied here because
+    # none of it was reproduced -- fix what actually fails.
+    sources:
+      - type: git
+        url: https://github.com/AyatanaIndicators/libdbusmenu.git
+        tag: 18.10.20180917
+    cleanup:
+      - /libexec
+
+  - name: libayatana-ido
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DENABLE_TESTS=OFF
+    sources:
+      - type: git
+        url: https://github.com/AyatanaIndicators/libayatana-ido.git
+        tag: 0.10.4
+
+  - name: libayatana-indicator
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DENABLE_TESTS=OFF
+    sources:
+      - type: git
+        url: https://github.com/AyatanaIndicators/libayatana-indicator.git
+        tag: 0.9.4
+    cleanup:
+      - /libexec
+
+  - name: libayatana-appindicator
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DENABLE_BINDINGS_MONO=OFF
+      - -DENABLE_BINDINGS_VALA=OFF
+      - -DENABLE_TESTS=OFF
+      - -DFLAVOUR_GTK3=ON
+    sources:
+      - type: git
+        url: https://github.com/AyatanaIndicators/libayatana-appindicator.git
+        tag: 0.5.93
+
+  # ---------------------------------------------------------------------
+  # The tray itself.
+  # ---------------------------------------------------------------------
+
+  - name: montech-hyperflow-tray
+    buildsystem: simple
+    build-options:
+      no-debuginfo: true
+    build-commands:
+
+      # install-tray is install-lib + install-icons + install-desktop +
+      # install-polkit plus the generated wrapper. It deliberately does NOT
+      # pull in install-udev, install-unit or reload-udev, which is exactly
+      # why the same Makefile that builds the .deb can build this. Nothing it
+      # writes escapes $(PREFIX).
+      - make install-tray PREFIX=/app
+
+      # Host polkit reads /usr/share/polkit-1/actions and cannot see into a
+      # Flatpak's /app, so a copy in here authorises nothing and only misleads
+      # whoever audits the bundle. The real action file is installed by the
+      # native montech-hyperflow package, which has to be present anyway.
+      - rm -rf /app/share/polkit-1
+
+      - install -d /app/share/doc/montech-hyperflow
+      - install -m 0644 README.md NOTICE.md LICENSE docs/PROTOCOL.md
+          docs/EXPERIMENTS.md packaging/montech-hyperflow.conf.example
+          /app/share/doc/montech-hyperflow/
+
+      # Host-command shims.
+      #
+      # tray/service.py shells out to `systemctl`, `pkexec` and
+      # `montech-hyperflow` by name. None of the three exist inside the
+      # runtime, and all three are meaningless inside it even if they did.
+      # These forward to the host. shutil.which() finds them, so unit_state()
+      # reports the real service state instead of "unknown".
+      #
+      # pkexec is worth spelling out: service.apply_settings() resolves the
+      # helper to /usr/bin/montech-hyperflow-admin (which() misses inside the
+      # sandbox, so the hardcoded fallback wins) and the host pkexec then
+      # matches that against the exec.path annotation in the polkit action.
+      # It lines up only if the native package was installed with PREFIX=/usr,
+      # which is what every distro package does -- a `sudo make install` with
+      # the default PREFIX=/usr/local puts the helper somewhere the shipped
+      # polkit action does not name.
+      - |
+        set -eu
+        for cmd in systemctl pkexec montech-hyperflow; do
+          cat > /app/bin/"$cmd" <<EOF
+        #!/bin/sh
+        # Generated by the Flatpak build. Forwards to the host binary of the
+        # same name; requires --talk-name=org.freedesktop.Flatpak.
+        exec flatpak-spawn --host $cmd "\$@"
+        EOF
+          chmod 0755 /app/bin/"$cmd"
+        done
+
+      # Icons, under two names on purpose.
+      #
+      # Flatpak only exports icons whose basename starts with the app ID, and
+      # the exported copy is the one the host sees. But tray/app.py asks the
+      # icon theme for "montech-hyperflow" and falls back to a generic
+      # thermometer if it is missing, so the in-sandbox name has to survive
+      # too -- keep both.
+      #
+      # The panel icon is resolved by the HOST shell, not by us: the status
+      # notifier item carries an icon *name* across the bus. So the icon that
+      # actually appears in the panel comes from the host's hicolor theme,
+      # which is populated by the native montech-hyperflow package. In the
+      # supported configuration that file is there and the right icon shows.
+      - |
+        set -eu
+        d=/app/share/icons/hicolor
+        cp "$d/scalable/apps/montech-hyperflow.svg" \
+           "$d/scalable/apps/org.montech.HyperFlow.svg"
+        cp "$d/symbolic/apps/montech-hyperflow-symbolic.svg" \
+           "$d/symbolic/apps/org.montech.HyperFlow-symbolic.svg"
+
+      # AppStream requires a desktop-application's launchable to be named
+      # after the component ID inside a Flatpak, while the native packages
+      # ship montech-hyperflow-tray.desktop. Rename here rather than relying
+      # on flatpak-builder's rename-desktop-file, so the rewrite is visible
+      # and reviewable instead of implicit. X-Flatpak-RenamedFrom keeps
+      # GNOME Software from listing the Flatpak and the native package as two
+      # unrelated apps. Exec= is rewritten to `flatpak run` on export.
+      - |
+        set -eu
+        a=/app/share/applications
+        sed -e 's/^Icon=montech-hyperflow$/Icon=org.montech.HyperFlow/' \
+            "$a/montech-hyperflow-tray.desktop" > "$a/org.montech.HyperFlow.desktop"
+        printf 'X-Flatpak-RenamedFrom=montech-hyperflow-tray.desktop;\n' \
+            >> "$a/org.montech.HyperFlow.desktop"
+        rm -f "$a/montech-hyperflow-tray.desktop"
+
+      # Same rename applied to the shared metainfo. The canonical copy in
+      # packaging/appstream/ names the native desktop file, because that is
+      # what the .deb and .rpm install.
+      - |
+        set -eu
+        install -d /app/share/metainfo
+        sed -e 's|>montech-hyperflow-tray\.desktop<|>org.montech.HyperFlow.desktop<|' \
+            packaging/appstream/org.montech.HyperFlow.metainfo.xml \
+            > /app/share/metainfo/org.montech.HyperFlow.metainfo.xml
+
+    sources:
+      # Local build from a checkout: `flatpak-builder build <this file>` run
+      # from packaging/flatpak/ resolves this against the manifest directory.
+      - type: dir
+        path: ../..
+        skip:
+          - .git
+          - build
+
+      # For a release build or a Flathub submission, delete the dir source
+      # above and use this instead, with a real commit pinned:
+      #
+      # - type: git
+      #   url: https://github.com/OWNER/montech-hyperflow.git
+      #   tag: v0.3.0
+      #   commit: <fill in with: git rev-parse v0.3.0^{commit}>

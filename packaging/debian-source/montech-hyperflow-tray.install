@@ -1,0 +1,14 @@
+# Indicator. The "*.py" glob above is not recursive, so the tray subpackage
+# owns montech_hyperflow/tray/ outright: a core-only install has no
+# GTK-importing file on disk at all, which is the point of the split.
+usr/bin/montech-hyperflow-tray
+usr/lib/montech-hyperflow/montech_hyperflow/tray/*.py
+usr/share/applications/montech-hyperflow-tray.desktop
+usr/share/icons/hicolor/scalable/apps/montech-hyperflow*.svg
+usr/share/icons/hicolor/symbolic/apps/montech-hyperflow*.svg
+# The pkexec helper travels with the polkit action that authorises it. The
+# helper exists only to be invoked by the indicator, and an action file whose
+# annotated exec.path does not exist makes polkit log errors, so shipping the
+# two apart would be wrong in both directions.
+usr/bin/montech-hyperflow-admin
+usr/share/polkit-1/actions/org.montech.hyperflow.policy

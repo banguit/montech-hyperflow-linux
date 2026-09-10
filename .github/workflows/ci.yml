@@ -1,0 +1,418 @@
+name: CI
+
+# Push is limited to main on purpose: a branch that already has a pull request
+# open would otherwise build twice for every commit. Tags are release.yml's job.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  DEBIAN_FRONTEND: noninteractive
+
+jobs:
+  # ---------------------------------------------------------------- tests ---
+  test:
+    name: tests (python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        os: [ubuntu-latest]
+        include:
+          # actions/setup-python publishes no 3.8 build for ubuntu-24.04, which
+          # is what ubuntu-latest resolves to. 3.8 is still the floor declared
+          # in pyproject.toml (RHEL 8 / Ubuntu 20.04 era), so that leg runs on
+          # the newest runner image that still has a 3.8 to install.
+          - python: "3.8"
+            os: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        id: py
+        with:
+          python-version: ${{ matrix.python }}
+
+      # No pip install step anywhere in this job, deliberately: the test suite
+      # is standard library only and hardware-free, and it must stay that way.
+      # If a test ever needs a dependency, that is the bug.
+      - name: make test
+        run: make test PYTHON="${{ steps.py.outputs.python-path }}"
+
+      - name: the daemon half must import with no third-party modules
+        run: |
+          PYTHONPATH=src "${{ steps.py.outputs.python-path }}" - <<'PY'
+          import importlib, sys
+          for name in ("hid", "frame", "device", "sensors", "config",
+                       "status", "daemon", "cli", "admin", "__main__"):
+              importlib.import_module("montech_hyperflow." + name)
+          # montech_hyperflow.tray is excluded: GTK lives there and only there.
+          forbidden = {"gi", "usb", "pyudev", "dbus", "serial", "hidapi",
+                       "setuptools", "pkg_resources"}
+          leaked = sorted(m for m in sys.modules if m.split(".")[0] in forbidden)
+          if leaked:
+              sys.exit("daemon modules pulled in non-stdlib imports: %s" % leaked)
+          print("stdlib only: ok")
+          PY
+
+      - name: the test suite must not reach for real hardware
+        run: |
+          # A test that opens a real device node would pass on the maintainer's
+          # desktop and fail (or worse, write to somebody's cooler) elsewhere.
+          # Matching open() on a /dev path rather than the bare string keeps
+          # fixtures and comments that merely name /dev/hidraw5 legal.
+          if grep -rnE "open\(\s*[\"']/dev/" tests/ --include='*.py'; then
+            echo "::error::tests open a real device node; keep the suite hardware-free"
+            exit 1
+          fi
+          echo "no hardware paths in tests: ok"
+
+  # ----------------------------------------------------------------- lint ---
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: install the checkers make lint shells out to
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+              desktop-file-utils shellcheck
+
+      - name: make lint
+        run: make lint
+
+      # Deliberately only the "this is actually broken" rules: undefined names,
+      # syntax errors, f-string and comparison mistakes. The code is plain on
+      # purpose and a style bot would fight that. No config file, so nothing to
+      # drift out of sync with; the selection lives here where it is visible.
+      - name: ruff (errors only, not style)
+        run: |
+          python -m pip install --disable-pip-version-check --quiet ruff
+          ruff check --select=E9,F63,F7,F82 --target-version=py38 \
+                     --output-format=github src tests
+
+      - name: shellcheck
+        run: |
+          set -e
+          # The sleep hook is /bin/sh, not bash: checked as sh so a bashism is
+          # caught here rather than on a Debian box where /bin/sh is dash.
+          # --severity=warning, not the default: style and info nits ("use $(..)
+          # instead of backticks") should not block a merge on a repository
+          # whose shell is four small scripts. Real bugs still fail.
+          shellcheck --severity=warning --shell=sh packaging/systemd/montech-hyperflow-sleep
+
+          # Then everything else in packaging/ that starts with a shell
+          # shebang -- the AppImage scripts, the Debian maintainer scripts,
+          # whatever gets added next. Driven by the shebang rather than a
+          # hardcoded list so a new script cannot slip past unchecked.
+          # (The pacman .install scriptlet has no shebang and is sourced, not
+          # run, so it is deliberately not in scope.)
+          n=0
+          while IFS= read -r f; do
+            case "$(head -n1 "$f")" in
+              '#!'*sh*)
+                echo "shellcheck $f"
+                shellcheck --severity=warning "$f"   # dialect from the shebang
+                n=$((n + 1))
+                ;;
+            esac
+          done <<EOF
+          $(find packaging -type f \
+                 -not -path 'packaging/arch/src/*' -not -path 'packaging/arch/pkg/*' \
+                 | sort)
+          EOF
+          echo "$n shell scripts checked"
+
+      - name: the version is stated in exactly one place
+        run: |
+          set -e
+          ver="$(make version)"
+          # First versioned heading in the changelog; [Unreleased] is skipped.
+          log="$(grep -m1 -E '^## \[[0-9]' CHANGELOG.md | sed -E 's/^## \[([^]]+)\].*/\1/')"
+          echo "__version__ = $ver   CHANGELOG = $log"
+          [ "$ver" = "$log" ] || {
+            echo "::error::__version__ ($ver) and the newest CHANGELOG entry ($log) disagree"
+            exit 1
+          }
+
+      # Non-negotiable project requirement: nothing this project ships may read
+      # as a Montech product. Enforced here so a new packaging file cannot
+      # quietly omit it.
+      - name: every shipped description says "unofficial"
+        run: |
+          set -e
+          missing=0
+          # Every file that carries a user-visible description of the package.
+          # Globs that match nothing stay literal and are skipped by the -f
+          # test, so a format this project has not adopted costs nothing here.
+          for f in README.md NOTICE.md \
+                   packaging/debian/control packaging/debian/control.in \
+                   packaging/debian-source/control \
+                   packaging/rpm/*.spec packaging/arch/PKGBUILD \
+                   packaging/flatpak/*.yml packaging/flatpak/*.yaml \
+                   packaging/flatpak/*.json packaging/snap/snapcraft.yaml \
+                   packaging/appstream/*.xml; do
+            [ -f "$f" ] || continue
+            if grep -qi 'unofficial' "$f"; then
+              echo "ok        $f"
+            else
+              echo "::error file=$f::description does not say this is an unofficial community driver"
+              missing=1
+            fi
+          done
+          exit $missing
+
+  # ------------------------------------------------------------------ deb ---
+  deb:
+    name: build the .deb
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: make deb
+        run: make deb
+
+      - name: inspect what came out
+        run: |
+          set -e
+          shopt -s nullglob
+          debs=(build/*.deb)
+          [ ${#debs[@]} -gt 0 ] || { echo "::error::make deb produced no .deb"; exit 1; }
+          ver="$(make version)"
+          for d in "${debs[@]}"; do
+            echo "=============== $d"
+            dpkg-deb --info "$d"
+            dpkg-deb --contents "$d"
+
+            arch="$(dpkg-deb --field "$d" Architecture)"
+            [ "$arch" = all ] || {
+              echo "::error::$d is Architecture: $arch; this package is pure Python"
+              exit 1; }
+
+            dver="$(dpkg-deb --field "$d" Version)"
+            case "$dver" in
+              "$ver"|"$ver"-*) ;;
+              *) echo "::error::$d is version $dver, source says $ver"; exit 1 ;;
+            esac
+
+            dpkg-deb --field "$d" Description | grep -qi 'unofficial' || {
+              echo "::error::$d description does not say it is unofficial"
+              exit 1; }
+          done
+        shell: bash
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deb
+          path: build/*.deb
+          if-no-files-found: error
+
+  # -------------------------------------------------------- staged install ---
+  # Separate from the .deb job on purpose. This is the check that catches a
+  # Makefile regression, and it must still run when packaging metadata is
+  # broken and `make deb` cannot complete.
+  staged-install:
+    name: staged install layout
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: make install-core install-tray into a DESTDIR
+        run: |
+          make install-core install-tray DESTDIR="$PWD/stage" PREFIX=/usr
+          find stage -printf '%M %P\n' | sort
+
+      - name: assert the installed layout
+        shell: bash
+        run: |
+          stage="$PWD/stage"
+          fail=0
+          chk() {  # chk <expected mode> <path under PREFIX>
+            local want="$1" p="$stage$2" got
+            if [ ! -e "$p" ]; then
+              echo "::error::missing $2"; fail=1; return
+            fi
+            got="$(stat -c '%a' "$p")"
+            if [ "$got" != "$want" ]; then
+              echo "::error::$2 has mode $got, expected $want"; fail=1; return
+            fi
+            echo "ok  $2 ($got)"
+          }
+
+          # Wrappers.
+          chk 755 /usr/bin/montech-hyperflow
+          chk 755 /usr/bin/montech-hyperflow-admin
+          chk 755 /usr/bin/montech-hyperflow-tray
+
+          # System integration. The sleep hook must be executable or
+          # systemd-sleep silently ignores it.
+          chk 644 /etc/udev/rules.d/72-montech-hyperflow.rules
+          chk 644 /usr/lib/systemd/system/montech-hyperflow.service
+          chk 755 /usr/lib/systemd/system-sleep/montech-hyperflow
+          chk 644 /usr/share/polkit-1/actions/org.montech.hyperflow.policy
+          chk 644 /usr/share/applications/montech-hyperflow-tray.desktop
+
+          # The package itself, in its private libdir.
+          for m in __init__ __main__ hid frame device sensors config \
+                   status daemon cli admin; do
+            chk 644 /usr/lib/montech-hyperflow/montech_hyperflow/$m.py
+          done
+          for m in __init__ app service; do
+            chk 644 /usr/lib/montech-hyperflow/montech_hyperflow/tray/$m.py
+          done
+
+          for i in scalable/apps/montech-hyperflow.svg \
+                   scalable/apps/montech-hyperflow-idle.svg \
+                   symbolic/apps/montech-hyperflow-symbolic.svg \
+                   symbolic/apps/montech-hyperflow-idle-symbolic.svg; do
+            chk 644 /usr/share/icons/hicolor/$i
+          done
+
+          for d in README.md NOTICE.md LICENSE PROTOCOL.md EXPERIMENTS.md \
+                   montech-hyperflow.conf.example; do
+            chk 644 /usr/share/doc/montech-hyperflow/$d
+          done
+
+          # The wrappers must point at the private libdir, not site-packages.
+          grep -q '/usr/lib/montech-hyperflow' "$stage/usr/bin/montech-hyperflow" || {
+            echo "::error::the generated wrapper does not reference LIBDIR"; fail=1; }
+          grep -q 'montech_hyperflow.cli' "$stage/usr/bin/montech-hyperflow" || {
+            echo "::error::the cli wrapper does not import the cli entry point"; fail=1; }
+          grep -q 'montech_hyperflow.tray.app' "$stage/usr/bin/montech-hyperflow-tray" || {
+            echo "::error::the tray wrapper does not import the tray entry point"; fail=1; }
+
+          if find stage -path '*-packages*' | grep -q .; then
+            echo "::error::something landed in site-packages"; fail=1
+          fi
+          if find stage \( -name '*.pyc' -o -name '__pycache__' \) | grep -q .; then
+            echo "::error::byte-compiled cruft was installed"; fail=1
+          fi
+
+          # Nothing GTK may be reachable from the core install. The tray modules
+          # sit in the same libdir here (both targets ran in one DESTDIR) but
+          # the daemon must never import them.
+          if grep -rl 'import gi' \
+                 "$stage"/usr/lib/montech-hyperflow/montech_hyperflow/*.py; then
+            echo "::error::a daemon module imports gi"; fail=1
+          fi
+
+          # The unit is installed verbatim, so its ExecStart is whatever the
+          # source file says. Warn rather than fail: it is the packaging's job
+          # to make that path agree with PREFIX.
+          exec_start="$(sed -n 's/^ExecStart=\([^ ]*\).*/\1/p' \
+              "$stage/usr/lib/systemd/system/montech-hyperflow.service")"
+          if [ ! -e "$stage$exec_start" ]; then
+            echo "::warning::the unit's ExecStart ($exec_start) is not what this PREFIX installs"
+          fi
+
+          exit $fail
+
+      - name: make uninstall removes everything it installed
+        run: |
+          make uninstall DESTDIR="$PWD/stage" PREFIX=/usr
+          left="$(find stage -type f)"
+          if [ -n "$left" ]; then
+            echo "::error::uninstall left files behind:"
+            echo "$left"
+            exit 1
+          fi
+          echo "uninstall is complete: ok"
+
+  # ------------------------------------------------------------ data files ---
+  data-files:
+    name: udev / desktop / polkit / appstream
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: install validators
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+              desktop-file-utils appstream libxml2-utils
+
+      - name: udevadm verify
+        run: |
+          udevadm --version
+          udevadm verify packaging/udev/*.rules
+
+      - name: the udev rule must sort before 73-seat-late.rules
+        run: |
+          # TAG+="uaccess" set by a file that sorts after 73-seat-late.rules is
+          # silently dropped, which is the whole reason this file is named 72-.
+          ls packaging/udev/
+          for f in packaging/udev/*.rules; do
+            n="$(basename "$f")"
+            case "$n" in
+              [0-6][0-9]-*|7[0-2]-*) echo "ok  $n sorts before 73-seat-late.rules" ;;
+              *) echo "::error file=$f::$n sorts at or after 73-seat-late.rules; uaccess will be ignored"
+                 exit 1 ;;
+            esac
+          done
+
+      - name: desktop-file-validate
+        run: desktop-file-validate packaging/desktop/*.desktop
+
+      - name: polkit policy, icons and appstream are well-formed XML
+        run: |
+          set -e
+          shopt -s nullglob globstar
+          files=(packaging/polkit/*.policy packaging/icons/**/*.svg
+                 packaging/**/*metainfo.xml packaging/**/*appdata.xml)
+          for f in "${files[@]}"; do
+            python3 -c 'import sys,xml.dom.minidom as m; m.parse(sys.argv[1])' "$f"
+            echo "well-formed  $f"
+          done
+          # The polkit policy has a DTD; validate against it when it resolves
+          # locally (polkit ships the DTD in /usr/share/polkit-1).
+          xmllint --noout packaging/polkit/*.policy
+        shell: bash
+
+      - name: appstream metainfo (advisory)
+        shell: bash
+        run: |
+          shopt -s nullglob globstar
+          found=(packaging/**/*metainfo.xml packaging/**/*appdata.xml)
+          if [ ${#found[@]} -eq 0 ]; then
+            echo "::notice::no appstream metainfo in this tree yet"
+            exit 0
+          fi
+          # Advisory only: appstreamcli's rule set moves between releases and a
+          # new "missing tag" hint should not block a merge. Well-formedness is
+          # checked above and is the part that must not regress.
+          for f in "${found[@]}"; do
+            appstreamcli validate --no-net --pedantic "$f" || \
+              echo "::warning file=$f::appstreamcli reported issues (advisory)"
+          done
+
+      - name: systemd unit (advisory)
+        run: |
+          # The unit is a template (@BINDIR@/@DOCDIR@), so verify the file the
+          # Makefile actually generates, not the source. systemd-analyze
+          # resolves ExecStart=, which does not exist in a CI container, so
+          # this stays advisory -- it is here to catch a misspelled directive.
+          stage="$(mktemp -d)"
+          make install-unit DESTDIR="$stage" PREFIX=/usr
+          test -f "$stage/usr/lib/systemd/system/montech-hyperflow.service"
+          grep -q '^ExecStart=/usr/bin/montech-hyperflow ' \
+            "$stage/usr/lib/systemd/system/montech-hyperflow.service"
+          systemd-analyze verify \
+            "$stage/usr/lib/systemd/system/montech-hyperflow.service" \
+            || echo "::warning::systemd-analyze verify reported issues (advisory)"

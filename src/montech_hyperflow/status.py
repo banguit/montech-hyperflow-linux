@@ -74,16 +74,25 @@ class StatusWriter:
             pass
 
 
-def search_paths(path=STATUS_PATH):
-    """Every location `read` will look in, in order."""
-    paths = [path]
+def search_paths(path=None):
+    """Every location `read` will look in, in order.
+
+    An explicit `path` is authoritative and is the ONLY place searched. The
+    XDG_RUNTIME_DIR fallback exists for a daemon that could not create
+    /run/montech-hyperflow (an unprivileged foreground run), and applies only
+    when the caller did not name a path -- otherwise `read("/tmp/nothing")`
+    would answer with some other daemon's status, which is worse than None.
+    """
+    if path is not None:
+        return [path]
+    paths = [STATUS_PATH]
     alt = _fallback_dir()
     if alt:
         paths.append(os.path.join(alt, "status.json"))
     return paths
 
 
-def read(path=STATUS_PATH):
+def read(path=None):
     """Return the daemon's last published status, or None.
 
     A record older than STALE_AFTER is returned with stale=True rather than

@@ -1,0 +1,73 @@
+#!/bin/sh
+# Maintainer script for the single .deb produced by "make deb".
+set -e
+
+ICON_THEME_DIR=/usr/share/icons/hicolor
+DESKTOP_DIR=/usr/share/applications
+
+case "$1" in
+remove)
+    # Normally a prerm would stop the daemon before the files go away. The
+    # Makefile's deb target installs only postinst, postrm and conffiles, so
+    # this is the last chance: a running daemon keeps its deleted binary
+    # mapped and would go on driving the display forever after the package is
+    # gone. The unit file has already been unlinked, so systemctl can only
+    # act on the copy still loaded in memory -- hence the "|| true".
+    if [ -d /run/systemd/system ] && command -v systemctl >/dev/null 2>&1; then
+        systemctl stop montech-hyperflow.service >/dev/null 2>&1 || true
+        systemctl daemon-reload >/dev/null 2>&1 || true
+    fi
+
+    # The rule file is gone by now; reload and re-trigger so the hidraw node
+    # loses the MODE/GROUP/uaccess this package gave it, instead of keeping
+    # them until the next reboot.
+    if command -v udevadm >/dev/null 2>&1; then
+        udevadm control --reload >/dev/null 2>&1 || true
+        udevadm trigger --subsystem-match=hidraw --action=add >/dev/null 2>&1 || true
+    fi
+
+    if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+        gtk-update-icon-cache -f -t "$ICON_THEME_DIR" >/dev/null 2>&1 || true
+    fi
+    if command -v update-desktop-database >/dev/null 2>&1; then
+        update-desktop-database -q "$DESKTOP_DIR" >/dev/null 2>&1 || true
+    fi
+    ;;
+
+purge)
+    # /etc/montech-hyperflow.conf is NOT shipped by this package, so it is not
+    # a dpkg conffile and dpkg will not clean it up. It is created by hand or
+    # by the tray's pkexec helper, which means purge is the only thing that
+    # can remove it. (Listing an unshipped path in DEBIAN/conffiles is not an
+    # option: dpkg-deb rejects the build outright with "conffile ... does not
+    # appear in package".)
+    rm -f /etc/montech-hyperflow.conf
+
+    # Runtime state: status.json, written by the daemon each tick and read by
+    # the tray, plus the flag the system-sleep hook drops to remember that it
+    # was the one that stopped the service. /run is a tmpfs and clears on
+    # reboot, but purging should not leave a stale status file behind for a
+    # tray that is still running in someone's session.
+    rm -rf /run/montech-hyperflow
+    rm -f /run/montech-hyperflow.resume
+
+    # If the admin had enabled the service, "systemctl enable" left a symlink
+    # in /etc that now points at nothing. Deliberately only on purge: on a
+    # plain remove the enablement is configuration and should survive so that
+    # reinstalling restores the previous state.
+    rm -f /etc/systemd/system/multi-user.target.wants/montech-hyperflow.service
+    if [ -d /run/systemd/system ] && command -v systemctl >/dev/null 2>&1; then
+        systemctl daemon-reload >/dev/null 2>&1 || true
+    fi
+    ;;
+
+upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+    ;;
+
+*)
+    echo "postrm called with unknown argument '$1'" >&2
+    exit 1
+    ;;
+esac
+
+exit 0

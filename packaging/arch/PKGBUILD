@@ -1,0 +1,182 @@
+# Maintainer: montech-hyperflow contributors <https://github.com/OWNER/montech-hyperflow>
+
+pkgbase=montech-hyperflow
+pkgname=('montech-hyperflow' 'montech-hyperflow-tray')
+pkgver=0.3.0
+pkgrel=1
+arch=('any')                      # pure Python, no compiled extension
+url='https://github.com/OWNER/montech-hyperflow'
+# 'GPL3' is the classic Arch license identifier. Newer packaging standards
+# spell this 'GPL-3.0-or-later'; both name the same LICENSE file we ship.
+license=('GPL3')
+# 'make' comes from base-devel, which makepkg assumes is installed, so it is
+# deliberately not listed here. Nothing else is needed: there is no compile
+# step and no build-time network access.
+makedepends=()
+install=
+source=()
+sha256sums=()
+
+# WHERE THE SOURCE COMES FROM
+#
+# This PKGBUILD lives inside the repository it builds, so it builds the
+# working tree two directories up -- uncommitted edits included. That is what
+# you want while iterating on the driver: no tag, no tarball, no network.
+# Override it for an out-of-tree checkout:
+#
+#     _srctree=/path/to/montech-hyperflow makepkg -si
+#
+# AT RELEASE TIME, once OWNER is chosen and a tag exists, delete _srctree and
+# the tar pipe in prepare() and switch to a real source array instead:
+#
+#     source=("$pkgbase-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
+#     sha256sums=('...')   # updpkgsums
+#
+# then replace $_tree below with "$srcdir/$pkgbase-$pkgver" (the tarball's own
+# prefix directory) and drop prepare()'s copy step. Nothing else changes.
+_srctree="${_srctree:-$startdir/../..}"
+_tree="$srcdir/$pkgbase-$pkgver"
+
+# Arch ships package-provided udev rules in the vendor directory and leaves
+# /etc/udev/rules.d to the sysadmin. The Makefile defaults UDEVDIR to
+# /etc/udev/rules.d (which is right for Debian); overriding it here keeps the
+# rule out of /etc, so pacman never has to arbitrate a .pacnew over a file the
+# admin may have edited, and an admin override of the same name still wins.
+#
+# The 72- prefix still does its job: udev sorts the merged rule set by file
+# name across both directories, so 72-montech-hyperflow.rules is still
+# evaluated before 73-seat-late.rules, which is what makes TAG+="uaccess"
+# take effect. Set this to /etc/udev/rules.d to match the Debian layout.
+_udevdir=/usr/lib/udev/rules.d
+
+prepare() {
+	if [ ! -f "$_srctree/pyproject.toml" ] || [ ! -f "$_srctree/Makefile" ]; then
+		error "no montech-hyperflow source tree at %s" "$_srctree"
+		error "set _srctree=/path/to/montech-hyperflow"
+		return 1
+	fi
+
+	rm -rf "$_tree"
+	install -d "$_tree"
+
+	# Copy the working tree. The two packaging/arch excludes are not
+	# cosmetic: with no BUILDDIR set, makepkg puts src/ and pkg/ next to
+	# this PKGBUILD, so copying the repo root into $srcdir would copy
+	# $srcdir into itself and recurse until the disk fills.
+	tar -C "$_srctree" -cf - \
+		--exclude=./.git \
+		--exclude=./build \
+		--exclude=./packaging/arch/src \
+		--exclude=./packaging/arch/pkg \
+		--exclude='__pycache__' \
+		--exclude='*.pyc' \
+		--exclude='*.tar.gz' \
+		--exclude='*.pkg.tar.*' \
+		. | tar -C "$_tree" -xf -
+
+	# Catch the classic split-brain bump: __version__ raised, PKGBUILD not.
+	local _v
+	_v=$(make -C "$_tree" --no-print-directory version)
+	if [ "$_v" != "$pkgver" ]; then
+		error "pkgver=%s but the source says %s" "$pkgver" "$_v"
+		return 1
+	fi
+
+	# The unit and the polkit policy are templates
+	# (montech-hyperflow.service.in, org.montech.hyperflow.policy.in); the
+	# Makefile substitutes @BINDIR@/@DOCDIR@ from PREFIX at install time, so
+	# there is nothing to rewrite here. package_*() below passes PREFIX=/usr.
+}
+
+check() {
+	# The suite is hardware-free and standard-library only, so it runs fine
+	# in a clean chroot. It does read $XDG_RUNTIME_DIR: four status tests
+	# fail if a real montech-hyperflow status.json is sitting there, which
+	# happens when you build on a machine that is running the daemon. Build
+	# in a chroot, or pass --nocheck, if you hit that.
+	make -C "$_tree" test
+}
+
+package_montech-hyperflow() {
+	# The disclaimer is required and namcap will warn that this exceeds the
+	# 80-character guideline. Do not resolve that warning by trimming the
+	# "unofficial / not affiliated" wording.
+	pkgdesc='Unofficial Linux driver for the Montech HyperFlow Digital AIO pump-head display (USB 1a2c:4e85, TCOMAS DH-C100 platform) - a community project, not affiliated with or endorsed by Montech'
+	depends=('python' 'systemd')
+	optdepends=(
+		'montech-hyperflow-tray: panel indicator for the desktop'
+		'nvidia-utils: GPU temperature via nvidia-smi for cards with no hwmon sensor'
+	)
+	install=montech-hyperflow.install
+
+	# No backup=() entry. /etc/montech-hyperflow.conf is optional and this
+	# package does not ship it -- only the annotated example, in the doc
+	# directory. pacman only tracks backup paths for files a package owns,
+	# so an admin-created config here is simply never touched on upgrade or
+	# removal, which is the behaviour we want. The udev rule is likewise not
+	# a backup path because _udevdir keeps it out of /etc entirely.
+	make -C "$_tree" install-core \
+		DESTDIR="$pkgdir" \
+		PREFIX=/usr \
+		UDEVDIR="$_udevdir"
+
+	# install-core also runs reload-udev, which the Makefile makes a no-op
+	# whenever DESTDIR is set. Nothing touches the live system from here.
+
+	# install-lib lays down montech_hyperflow/tray/ too. That half belongs to
+	# -tray: the whole point of the split is that a headless install has no
+	# GTK-importing file on disk. Both packages owning it would also make
+	# pacman refuse the pair with "exists in filesystem".
+	rm -rf "$pkgdir/usr/lib/montech-hyperflow/montech_hyperflow/tray"
+
+	# The pkexec helper ships with -tray, alongside the polkit action that
+	# authorises it; see the note there.
+	rm -f "$pkgdir/usr/bin/montech-hyperflow-admin"
+
+	# The Makefile puts LICENSE in the doc directory; Arch looks for it under
+	# /usr/share/licenses. Symlink rather than ship a second 35 KB copy.
+	install -d "$pkgdir/usr/share/licenses/$pkgname"
+	ln -s ../../doc/montech-hyperflow/LICENSE \
+		"$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}
+
+package_montech-hyperflow-tray() {
+	pkgdesc='Panel indicator for the unofficial Montech HyperFlow Digital AIO pump-head display driver - a community project, not affiliated with or endorsed by Montech'
+	# Exact-version dependency: the tray ships no Python code of its own and
+	# imports montech_hyperflow from the core package's private libdir, so the
+	# two must move together.
+	depends=("montech-hyperflow=$pkgver-$pkgrel"
+	         'python-gobject'
+	         'gtk3'
+	         'libayatana-appindicator'
+	         'polkit')
+
+	# No install= scriptlet. The GTK icon cache, the desktop database and
+	# polkit's action directory are all refreshed by pacman hooks that ship
+	# with gtk-update-icon-cache, desktop-file-utils and polkit respectively.
+	make -C "$_tree" install-tray install-bin \
+		DESTDIR="$pkgdir" \
+		PREFIX=/usr
+
+	# install-tray depends on install-lib, so it also lays down the top-level
+	# modules. Those belong to the core package (see the mirror-image rm
+	# above); keeping them here would make pacman refuse the pair with
+	# "exists in filesystem" on every module. -maxdepth 1 keeps tray/, which
+	# is this package's own code.
+	find "$pkgdir/usr/lib/montech-hyperflow/montech_hyperflow" \
+		-maxdepth 1 -name '*.py' -delete
+
+	# The pkexec helper travels with the polkit action that authorises it: an
+	# action whose annotated exec.path does not exist makes polkit log errors,
+	# and a helper with no action falls back to a generic prompt. install-core
+	# put the helper in the core package, so move it here.
+	rm -f "$pkgdir/usr/bin/montech-hyperflow"
+
+	# install-tray's gtk-update-icon-cache call is already guarded on an
+	# empty DESTDIR, so it does not run here.
+
+	# Point at the core package's license directory rather than duplicating
+	# it; the exact-version depends above guarantees it is present.
+	install -d "$pkgdir/usr/share/licenses"
+	ln -s montech-hyperflow "$pkgdir/usr/share/licenses/$pkgname"
+}

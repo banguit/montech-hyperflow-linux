@@ -1,0 +1,83 @@
+# pacman scriptlet for montech-hyperflow.
+#
+# Two jobs, both of which Arch's own pacman hooks leave undone:
+#
+#  1. The plugdev group. The systemd unit runs as a transient user with
+#     DynamicUser=yes + SupplementaryGroups=plugdev, and the udev rule sets
+#     GROUP="plugdev" on the hidraw node. Debian and Ubuntu ship that group;
+#     Arch does not create it at all. Without it the unit refuses to start
+#     ("Failed to determine supplementary groups") and the device node falls
+#     back to root:root, so even a manual run cannot open it.
+#
+#  2. udevadm trigger. Arch's systemd package reloads udev rules for you, but
+#     a reload only changes how devices are handled from then on. A cooler
+#     that was already plugged in at install time keeps its old permissions
+#     until it is re-added. The trigger re-applies the rule to the live
+#     device, which is the difference between "works now" and "works after
+#     you reboot". We run the reload ourselves too: it is idempotent, and it
+#     means this does not quietly depend on which hooks a given system has.
+#
+# The service is intentionally NOT enabled. Driving the pump head is opt-in.
+
+_ensure_plugdev() {
+	# -r for a system group. Idempotent, and shared: other packages and
+	# other distros use plugdev too, which is also why post_remove never
+	# deletes it.
+	if ! getent group plugdev >/dev/null 2>&1; then
+		groupadd -r plugdev || return 0
+	fi
+}
+
+_reload_udev() {
+	# Order matters: the group must exist before udev applies GROUP=, or
+	# the rule silently leaves the node owned by root.
+	command -v udevadm >/dev/null 2>&1 || return 0
+	# Guarded so an install inside a container or chroot, where udev is not
+	# running, does not turn into a pacman error.
+	udevadm control --reload >/dev/null 2>&1 || return 0
+	udevadm trigger --subsystem-match=hidraw --action=add >/dev/null 2>&1 || return 0
+}
+
+post_install() {
+	_ensure_plugdev
+	_reload_udev
+
+	cat <<'EOF'
+
+montech-hyperflow is installed but not running. It is opt-in:
+
+    montech-hyperflow --list                    # is the device visible?
+    sudo systemctl enable --now montech-hyperflow.service
+
+Notes:
+  * A logged-in desktop user gets access to the device automatically (the
+    udev rule tags it uaccess). A headless or non-seat account needs to be
+    added to the plugdev group by hand, and to log in again afterwards:
+        sudo usermod -aG plugdev <user>
+  * The service shows CPU temperature by default. To change the source or
+    the units, copy the example config into place and edit it:
+        sudo cp /usr/share/doc/montech-hyperflow/montech-hyperflow.conf.example \
+                /etc/montech-hyperflow.conf
+    That file is yours; pacman will never overwrite or remove it.
+  * For a panel indicator, install montech-hyperflow-tray.
+
+This is an unofficial community driver. It is not affiliated with, authorised
+by, or endorsed by Montech.
+
+EOF
+}
+
+post_upgrade() {
+	# Same two fixups, no banner. Worth redoing on every upgrade: the udev
+	# rule may have changed, and the group may have been removed by hand.
+	_ensure_plugdev
+	_reload_udev
+}
+
+post_remove() {
+	# Drop the rule from the running udev instance. The plugdev group is
+	# deliberately left behind -- it is not ours to delete, and other
+	# packages may be relying on it.
+	command -v udevadm >/dev/null 2>&1 || return 0
+	udevadm control --reload >/dev/null 2>&1 || return 0
+}

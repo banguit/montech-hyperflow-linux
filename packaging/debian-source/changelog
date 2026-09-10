@@ -1,0 +1,10 @@
+montech-hyperflow (0.3.0-1) unstable; urgency=medium
+
+  * Initial Debian packaging, split into montech-hyperflow (daemon, udev
+    rule, systemd service, suspend hook) and montech-hyperflow-tray (panel
+    indicator), so that a headless install pulls in no GUI stack.
+  * Install the udev rule into /usr/lib/udev/rules.d rather than the
+    Makefile's default of /etc/udev/rules.d, leaving /etc to the admin.
+  * Ship the service disabled: driving the pump head at boot is opt-in.
+
+ -- montech-hyperflow contributors <OWNER@users.noreply.github.com>  Thu, 10 Sep 2026 12:00:00 +0000

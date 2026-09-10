@@ -1,0 +1,157 @@
+name: Protocol finding (hardware experiment)
+description: What the pump head actually did in an experiment from docs/EXPERIMENTS.md. Negative results count.
+title: "[protocol] "
+labels: ["protocol", "hardware"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **This is the most valuable thing anyone can send this project.**
+
+        The driver cannot see the pump head, so every claim about `level`,
+        byte 5 and the unit nibble is inferred until a human looks at the
+        display and says what it did. "I ran E2b and absolutely nothing on the
+        head changed" is a result, not a non-result — please file it.
+
+        Read the ground rules in
+        [`docs/EXPERIMENTS.md`](https://github.com/OWNER/montech-hyperflow/blob/main/docs/EXPERIMENTS.md)
+        first, in particular: one variable per step, and **do not fuzz byte 1**.
+
+        Do not attach vendor binaries, vendor code, firmware or decompiler
+        output. This project does not accept them.
+
+  - type: dropdown
+    id: experiment
+    attributes:
+      label: Which experiment
+      description: From docs/EXPERIMENTS.md.
+      options:
+        - "E0 — first contact"
+        - "E0.1 — does it latch?"
+        - "E0.2 — the blank frame"
+        - "E-Unit — the unit nibble"
+        - "E1 — does byte 5 do anything?"
+        - "E2a — level endpoints"
+        - "E2b — level full sweep"
+        - "E3a — 0xFD after a blank"
+        - "E3b — 0xFD after a cold boot"
+        - "E4 — the wrong 65-byte length"
+        - "E5a — suspend, nothing writing"
+        - "E5b — suspend with the daemon running"
+        - "E5c — monitor off"
+        - "E6 — the Output report path"
+        - "Something else / not in the list"
+    validations:
+      required: true
+
+  - type: textarea
+    id: commands
+    attributes:
+      label: The exact commands you ran
+      description: Copy and paste them, in order. Include the `--device` you pinned.
+      render: shell
+      placeholder: |
+        montech-hyperflow --device /dev/montech-hyperflow --test-value 50 --once
+    validations:
+      required: true
+
+  - type: textarea
+    id: frames
+    attributes:
+      label: The frames that went out
+      description: >-
+        Output of the same commands with `--dry-run` added, so the bytes on the
+        wire are on the record next to the result.
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: observed
+    attributes:
+      label: What the head showed
+      description: >-
+        Digits, brightness, colour, any indicator, and how long it held. If it
+        changed and then changed back, say so. If nothing happened at all, say
+        that — that is the answer to half of these experiments.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: outcome
+    attributes:
+      label: Outcome
+      options:
+        - "The head changed as the experiment predicted"
+        - "The head changed, but not as predicted"
+        - "Nothing changed at all (negative result)"
+        - "The display went blank and stayed blank"
+        - "The device stopped responding until replug/reboot"
+        - "The command errored before anything reached the device"
+    validations:
+      required: true
+
+  - type: textarea
+    id: contradicts
+    attributes:
+      label: Does this contradict docs/PROTOCOL.md?
+      description: >-
+        If it does, quote the claim it contradicts. A contradiction is a good
+        outcome: the confidence tables exist so they can be corrected.
+    validations:
+      required: false
+
+  - type: textarea
+    id: list
+    attributes:
+      label: "`montech-hyperflow --list` output"
+      description: This writes nothing to the device.
+      render: shell
+      placeholder: |
+        $ montech-hyperflow --list
+    validations:
+      required: true
+
+  - type: input
+    id: lsusb
+    attributes:
+      label: The lsusb line for the cooler
+      description: "`lsusb | grep -i 1a2c` — include it even if the ID is not 1a2c:4e85."
+      placeholder: "Bus 003 Device 014: ID 1a2c:4e85 China Resource Semico Co., Ltd USB Gaming Keyboard"
+    validations:
+      required: true
+
+  - type: input
+    id: system
+    attributes:
+      label: Distro and kernel
+      description: "`. /etc/os-release; echo \"$PRETTY_NAME $(uname -r)\"`"
+      placeholder: "Fedora Linux 42 (Workstation Edition) 6.14.6-300.fc42.x86_64"
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Driver version
+      description: "`montech-hyperflow --version`, plus how you installed it (deb, rpm, AUR, make install, git checkout)."
+      placeholder: "0.3.0, .deb from the releases page"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: acknowledgements
+    attributes:
+      label: Before you file
+      options:
+        - label: >-
+            I am attaching no vendor binaries, vendor code, firmware,
+            decompiler output or vendor artwork.
+          required: true
+        - label: >-
+            I understand this is an unofficial community driver, with no
+            warranty, and not supported by Montech.
+          required: true
+        - label: >-
+            I ran one variable at a time and did not fuzz byte 1.
+          required: false

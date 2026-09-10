@@ -1,0 +1,194 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+# Creating the release and attaching assets is all this workflow needs.
+# Read-only by default; the one job that publishes asks for write itself.
+permissions:
+  contents: read
+
+env:
+  DEBIAN_FRONTEND: noninteractive
+
+jobs:
+  # The two artifacts that must exist for a release to happen at all.
+  dist:
+    name: source tarball + .deb
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0        # make tarball is git archive HEAD
+
+      - name: the tag must match __version__
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          ver="$(make version)"
+          echo "tag $GITHUB_REF_NAME -> $tag, source says $ver"
+          [ "$tag" = "$ver" ] || {
+            echo "::error::tag $GITHUB_REF_NAME does not match __version__ $ver"
+            exit 1
+          }
+
+      - name: the changelog must have an entry for this version
+        run: |
+          ver="$(make version)"
+          grep -q "^## \[$ver\]" CHANGELOG.md || {
+            echo "::error::CHANGELOG.md has no '## [$ver]' section"
+            exit 1
+          }
+
+      - name: make tarball
+        run: make tarball
+
+      # `make deb` runs the test suite first, so a broken build cannot ship.
+      - name: make deb
+        run: make deb
+
+      # Flattened into one directory before upload: the release job downloads
+      # every artifact into a single folder and globs it, and a nested
+      # build/ directory in there would be uploaded as a directory, not a file.
+      - name: collect
+        run: |
+          mkdir -p out
+          cp -v build/*.deb montech-hyperflow-*.tar.gz out/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: out/*
+          if-no-files-found: error
+
+  # Best effort from here down: a distro image that has moved on, or an
+  # appimagetool download that fails, must not block the release. Each of
+  # these is continue-on-error, and the release job publishes whatever
+  # artifacts actually turned up.
+  rpm:
+    name: rpm (best effort)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    container: fedora:latest
+    steps:
+      # git first: actions/checkout falls back to a plain tarball download
+      # when the container has no git, and `make tarball` needs a real repo.
+      - name: build dependencies
+        run: dnf -y install --setopt=install_weak_deps=False
+             git make python3 rpm-build rpmlint tar findutils systemd-rpm-macros
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: trust the checkout (container runs as a different uid)
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: make rpm
+        run: make rpm
+
+      - name: collect and lint
+        run: |
+          mkdir -p out
+          find "$HOME/rpmbuild/RPMS" -name '*.rpm' -exec cp -v {} out/ \;
+          find "$HOME/rpmbuild/SRPMS" -name '*.rpm' -exec cp -v {} out/ \;
+          rpmlint out/*.rpm || echo "::warning::rpmlint reported issues (advisory)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rpm
+          path: out/*.rpm
+          if-no-files-found: error
+
+  appimage:
+    name: AppImage (best effort)
+    # Built on the oldest supported runner image: an AppImage is only as
+    # portable as the glibc it was linked against.
+    runs-on: ubuntu-22.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: build
+        run: |
+          script=""
+          for c in packaging/appimage/build.sh packaging/appimage/build-appimage.sh; do
+            if [ -f "$c" ]; then script="$c"; break; fi
+          done
+          if [ -z "$script" ]; then
+            echo "::notice::no AppImage build script in this tree; skipping"
+            exit 0
+          fi
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libfuse2 file desktop-file-utils
+          sh "$script"
+          mkdir -p out
+          find . -maxdepth 2 -name '*.AppImage' -exec cp -v {} out/ \;
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: appimage
+          path: out/*.AppImage
+          if-no-files-found: warn
+
+  release:
+    name: publish the release
+    needs: [dist, rpm, appimage]
+    # The best-effort jobs are allowed to have failed; the .deb is not.
+    if: always() && needs.dist.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # No name/pattern: take whichever artifacts this run actually produced.
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: checksums
+        run: |
+          cd dist
+          ls -l
+          find . -maxdepth 1 -type f ! -name SHA256SUMS -printf '%P\n' \
+            | sort | xargs -r sha256sum > SHA256SUMS
+          cat SHA256SUMS
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          fail_on_unmatched_files: true
+          draft: false
+          # v0.3.0-rc1 and friends are marked pre-release automatically.
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          body: |
+            **Unofficial community driver** for the display on a Montech
+            HyperFlow Digital AIO pump head. Not produced, endorsed or
+            supported by Montech, TCOMAS or SEMICO — see
+            [`NOTICE.md`](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/NOTICE.md).
+
+            Hardware: USB `1a2c:4e85`, OEM platform **TCOMAS DH-C100**. Other
+            rebrands of the same pump head are expected to work; please open
+            an issue and say whether yours did.
+
+            **What changed:**
+            [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/CHANGELOG.md).
+
+            **Which file:** the `.deb` is the package CI builds and checks on
+            every commit. The `.rpm` and the AppImage are built best effort and
+            may be absent from a given release; the source tarball plus
+            `make install` works everywhere. Read
+            [which package should I use?](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/README.md#which-package-should-i-use)
+            first — this software needs a udev rule and a system service, so
+            the sandboxed formats cannot do the whole job.
+
+            `SHA256SUMS` covers every file attached here.
+
+            After installing, check the device is visible and writable before
+            enabling the service:
+
+            ```
+            montech-hyperflow --list
+            ```

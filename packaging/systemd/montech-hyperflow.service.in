@@ -1,7 +1,12 @@
+# Generated from montech-hyperflow.service.in at install time: @BINDIR@ and
+# @DOCDIR@ are substituted from the Makefile's PREFIX. Do not hardcode a
+# prefix here -- `sudo make install` uses /usr/local while every distro
+# package uses /usr, and a unit pointing at the wrong one fails Type=exec at
+# every start.
 [Unit]
 Description=Montech HyperFlow Digital pump-head display
-Documentation=file:/usr/share/doc/montech-hyperflow/PROTOCOL.md
-Documentation=file:/usr/share/doc/montech-hyperflow/README.md
+Documentation=file:@DOCDIR@/PROTOCOL.md
+Documentation=file:@DOCDIR@/README.md
 
 # No ordering keys on purpose.
 #
@@ -22,7 +27,7 @@ Documentation=file:/usr/share/doc/montech-hyperflow/README.md
 
 [Service]
 Type=exec
-ExecStart=/usr/local/bin/montech-hyperflow --source cpu --blank-on-exit
+ExecStart=@BINDIR@/montech-hyperflow --source cpu --blank-on-exit
 
 # Type=exec, not simple: with Type=simple systemd reports success the moment it
 # forks, so a missing or non-executable ExecStart becomes a silent infinite

@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SPDX-License-Identifier: CC0-1.0
+
+  Shared between the native packages (installed to
+  /usr/share/metainfo/) and the Flatpak. The Flatpak build rewrites the
+  <launchable> below, because Flatpak requires the desktop file to be named
+  after the app ID while the native packages ship it as
+  montech-hyperflow-tray.desktop. See packaging/flatpak/README.md.
+
+  `appstreamcli validate` emits one pedantic hint here, cid-contains-uppercase-
+  letter, because of the "HyperFlow" segment. That casing is the Flatpak
+  convention for the final segment of an app ID and has to match the Flatpak
+  ID exactly, so the hint is knowingly left standing.
+
+  There are deliberately no <screenshots>. The only UI is a panel icon and a
+  menu, no screenshot of it exists in this repository, and pointing at a URL
+  that 404s is worse than omitting the tag. AppStream linters will emit a
+  quality hint about this; that hint is correct and is left standing.
+-->
+<component type="desktop-application">
+  <id>org.montech.HyperFlow</id>
+
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+
+  <name>Montech HyperFlow Display</name>
+  <summary>Unofficial panel indicator for the Montech HyperFlow Digital AIO pump-head display</summary>
+
+  <!-- No developer id= on purpose. AppStream wants an rDNS domain or a
+       Fediverse handle, both lowercase; "io.github.OWNER" is rejected for the
+       uppercase placeholder, and asserting a montech.* domain here would
+       claim exactly the affiliation this project disclaims. Fill in a real
+       one (io.github.<owner>) at release time. -->
+  <developer>
+    <name>The montech-hyperflow contributors</name>
+  </developer>
+
+  <description>
+    <p>
+      Montech HyperFlow Display drives the 7-segment temperature readout on a
+      Montech HyperFlow Digital AIO pump head from Linux. It is an unofficial,
+      community-written driver: not produced, endorsed, supported, reviewed or
+      approved by Montech, by TCOMAS, or by SEMICO. Do not contact any of them
+      about it. The names are used only to say which hardware it talks to.
+    </p>
+    <p>
+      Montech's own application is Windows-only. The wire protocol used here
+      was documented from scratch for interoperability. No vendor code,
+      firmware, fonts or artwork is shipped, and none is required.
+    </p>
+    <p>
+      The hardware is USB 1a2c:4e85, OEM platform TCOMAS DH-C100. Rebrands of
+      the same pump head sold under other names very likely work unchanged.
+    </p>
+    <p>This package provides the panel indicator, which shows:</p>
+    <ul>
+      <li>The temperature the pump head is currently displaying</li>
+      <li>Celsius or Fahrenheit, switchable from the menu</li>
+      <li>CPU or GPU as the tracked sensor</li>
+      <li>Start and stop for the background display service</li>
+      <li>A one-click blank for the display</li>
+    </ul>
+    <p>
+      The indicator is a client and never opens the device itself. A
+      background system service owns the pump head, so the display keeps
+      working while you are logged out or sitting at the login screen. The
+      service, its udev rule and its privileged helper are installed by the
+      native <code>montech-hyperflow</code> package, which must be present on
+      the host for this indicator to do anything beyond report that the
+      daemon is missing.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">montech-hyperflow-tray.desktop</launchable>
+
+  <categories>
+    <category>System</category>
+    <category>Monitor</category>
+  </categories>
+
+  <!-- "montech", "hyperflow" and "display" are omitted on purpose: they
+       already appear in <name>/<summary>, and AppStream indexes those. These
+       are the terms an owner of a rebranded cooler would actually type. -->
+  <keywords>
+    <keyword>aio</keyword>
+    <keyword>cooler</keyword>
+    <keyword>pump</keyword>
+    <keyword>temperature</keyword>
+    <keyword>thermal</keyword>
+    <keyword>watercooling</keyword>
+    <keyword>hidraw</keyword>
+    <keyword>TCOMAS</keyword>
+    <keyword>DH-C100</keyword>
+  </keywords>
+
+  <url type="homepage">https://github.com/OWNER/montech-hyperflow</url>
+  <url type="bugtracker">https://github.com/OWNER/montech-hyperflow/issues</url>
+  <url type="help">https://github.com/OWNER/montech-hyperflow/blob/main/README.md</url>
+  <url type="vcs-browser">https://github.com/OWNER/montech-hyperflow</url>
+
+  <provides>
+    <binary>montech-hyperflow-tray</binary>
+  </provides>
+
+  <recommends>
+    <control>pointing</control>
+  </recommends>
+
+  <content_rating type="oars-1.1"/>
+
+  <releases>
+    <release version="0.3.0" date="2026-09-10" type="stable">
+      <url type="details">https://github.com/OWNER/montech-hyperflow/releases/tag/v0.3.0</url>
+      <description>
+        <p>Confirmed working on real hardware.</p>
+        <ul>
+          <li>Device discovery by HID usage page rather than by node number, so the correct interface is picked when the cooler exposes several</li>
+          <li>Live CPU temperature tracking, with GPU as an alternative source</li>
+          <li>Panel indicator with unit, source, service and blank controls</li>
+          <li>System service runs unprivileged as a transient user</li>
+          <li>The display is reopened automatically after unplug or resume</li>
+        </ul>
+      </description>
+    </release>
+  </releases>
+</component>

@@ -1,0 +1,6 @@
+# Debian packages do not ship their own copy of a common licence; the
+# reference in debian/copyright to /usr/share/common-licenses/GPL-3 is the
+# supported form. The Makefile's install-doc target stages LICENSE anyway,
+# for the package formats that do want it, so tell dh_missing this one is
+# dropped on purpose rather than forgotten.
+usr/share/doc/montech-hyperflow/LICENSE

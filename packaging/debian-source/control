@@ -1,0 +1,95 @@
+# Source package for the SPLIT build: montech-hyperflow (daemon) and
+# montech-hyperflow-tray (indicator). Comments are legal here because
+# dpkg-dev parses this file; they are NOT legal in the generated binary
+# DEBIAN/control that ../debian/control.in produces. See README.md.
+Source: montech-hyperflow
+Section: utils
+Priority: optional
+Maintainer: montech-hyperflow contributors <OWNER@users.noreply.github.com>
+# debhelper only. No dh-python, no python3-setuptools, no pybuild: the
+# package installs into a private libdir (/usr/lib/montech-hyperflow) with
+# generated /usr/bin wrappers, so it is not tied to a Python ABI and needs
+# nothing from the Python packaging helpers. python3 is here for the
+# Makefile's version extraction and for "make test" during the build.
+Build-Depends: debhelper-compat (= 13),
+               python3 (>= 3.8)
+Standards-Version: 4.7.0
+# Nothing in the build needs root: the Makefile only ever calls install(1)
+# with default ownership, and dpkg fixes the ownership up itself.
+Rules-Requires-Root: no
+Homepage: https://github.com/OWNER/montech-hyperflow
+Vcs-Browser: https://github.com/OWNER/montech-hyperflow
+Vcs-Git: https://github.com/OWNER/montech-hyperflow.git
+
+Package: montech-hyperflow
+Architecture: all
+Multi-Arch: foreign
+Depends: ${misc:Depends},
+         python3 (>= 3.8),
+         adduser,
+         udev
+Recommends: systemd
+Suggests: montech-hyperflow-tray
+Description: unofficial Linux driver for the Montech HyperFlow AIO pump display
+ Drives the 7-segment temperature display on the pump head of a Montech
+ HyperFlow Digital 240/360 all-in-one liquid cooler. A small daemon reads a
+ hwmon sensor -- the CPU package by default, optionally the GPU -- and writes
+ the value to the pump head over hidraw once a second. This package contains
+ the daemon, the command-line tool, the udev rule, the systemd service and a
+ suspend/resume hook.
+ .
+ It is pure Python standard library: no hidapi, no libusb, no pyudev, no
+ D-Bus binding, no kernel module and nothing from the Python package index.
+ Nothing here imports GTK, so it is safe on a headless machine; the panel
+ indicator is packaged separately as montech-hyperflow-tray.
+ .
+ UNOFFICIAL COMMUNITY SOFTWARE. This is not a Montech product. It is not
+ produced, endorsed, supported, reviewed or approved by Montech, by TCOMAS or
+ by SEMICO, and it contains no vendor code, firmware, strings or artwork. The
+ wire format was documented independently, by reverse engineering for
+ interoperability, so that the hardware works on Linux. It comes with no
+ warranty whatsoever; see the GPL, sections 15 and 16.
+ .
+ Target hardware: USB ID 1a2c:4e85, OEM platform TCOMAS DH-C100. Rebrands of
+ the same pump head sold under other names are very likely to work unchanged.
+ .
+ Installing this package does not enable the service. Check that
+ "montech-hyperflow --list" finds the device and reports it writable, then
+ turn it on with "systemctl enable --now montech-hyperflow.service".
+
+Package: montech-hyperflow-tray
+Architecture: all
+Multi-Arch: foreign
+# Unlike the single .deb built by "make deb", the GUI stack is a hard
+# dependency here. That is the entire point of the split: installing this
+# package is the explicit opt-in to a desktop, so it may state plainly what
+# it needs, and a headless box simply never installs it.
+#
+# The strict version lock on the daemon is required because the two packages
+# share one private Python package directory -- this one ships
+# montech_hyperflow/tray/*.py into the libdir the daemon package owns -- and
+# because debian/rules links this package's doc directory to the daemon's.
+Depends: ${misc:Depends},
+         montech-hyperflow (= ${binary:Version}),
+         python3-gi,
+         gir1.2-gtk-3.0,
+         gir1.2-ayatanaappindicator3-0.1,
+         polkitd | policykit-1
+# GNOME hides StatusNotifierItems without this extension; Ubuntu's GNOME
+# already ships it enabled, stock GNOME does not.
+Recommends: gnome-shell-extension-appindicator
+Description: panel indicator for the Montech HyperFlow AIO pump display
+ A tray indicator showing the temperature currently on the pump head, with
+ Celsius/Fahrenheit, CPU/GPU, start/stop and blank one click away.
+ .
+ It is a client, not a second driver: it never opens the device. The system
+ service owns the hardware, so the display keeps working after logout and at
+ the greeter, and two writers never fight over one display. Status arrives by
+ reading the daemon's /run/montech-hyperflow/status.json; changes are applied
+ through systemctl and a small pkexec helper that validates every key before
+ writing /etc/montech-hyperflow.conf.
+ .
+ UNOFFICIAL COMMUNITY SOFTWARE. This is not a Montech product and is not
+ produced, endorsed or supported by Montech, TCOMAS or SEMICO. The icons are
+ original work; no vendor artwork is shipped or referenced. Target hardware:
+ USB ID 1a2c:4e85, OEM platform TCOMAS DH-C100.

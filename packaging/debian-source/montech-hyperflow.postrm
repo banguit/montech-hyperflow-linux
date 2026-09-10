@@ -1,0 +1,37 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+remove)
+    # The rule file is gone by now; re-run the rules so the hidraw node loses
+    # the MODE/GROUP/uaccess this package gave it rather than keeping them
+    # until the next reboot.
+    if command -v udevadm >/dev/null 2>&1; then
+        udevadm control --reload >/dev/null 2>&1 || true
+        udevadm trigger --subsystem-match=hidraw --action=add >/dev/null 2>&1 || true
+    fi
+    ;;
+
+purge)
+    # /etc/montech-hyperflow.conf is not shipped by this package -- it is
+    # written by hand or by the tray's pkexec helper -- so it is not a dpkg
+    # conffile and nothing else will ever clean it up.
+    rm -f /etc/montech-hyperflow.conf
+    # status.json, published by the daemon each tick, and the flag the
+    # system-sleep hook drops to remember that it stopped the service.
+    rm -rf /run/montech-hyperflow
+    rm -f /run/montech-hyperflow.resume
+    ;;
+
+upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+    ;;
+
+*)
+    echo "postrm called with unknown argument '$1'" >&2
+    exit 1
+    ;;
+esac
+
+#DEBHELPER#
+
+exit 0

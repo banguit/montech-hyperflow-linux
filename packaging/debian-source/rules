@@ -1,0 +1,66 @@
+#!/usr/bin/make -f
+# Build:  cp -r packaging/debian-source debian && dpkg-buildpackage -us -uc -b
+# See packaging/debian-source/README.md.
+
+%:
+	dh $@
+
+# Pure Python: nothing to compile. The default dh_auto_build would run the
+# Makefile's "all" target, which only prints a banner.
+#
+# There is deliberately no byte-compilation step either. The modules live in
+# a private libdir rather than site-packages, so dh_python3 does not apply,
+# and the daemon runs under ProtectSystem=strict and cannot write __pycache__
+# anyway -- CPython just skips the cache and reparses, which for ~2000 lines
+# costs a few milliseconds once at start.
+#
+# The comment below is indented with a TAB and is therefore a recipe, which
+# is the point: an override target with a genuinely empty recipe is not an
+# override at all. make falls through to the "%:" match-anything rule above
+# and runs "dh override_dh_auto_build". A tab-indented comment is a recipe
+# that does nothing, which is what is wanted here.
+override_dh_auto_build:
+	# nothing to build
+
+# dh_auto_test is NOT overridden: the Makefile has a "test" target, so
+# debhelper finds and runs it, and DEB_BUILD_OPTIONS=nocheck skips it.
+
+override_dh_auto_install:
+	$(MAKE) install-core install-tray \
+	    DESTDIR=$(CURDIR)/debian/tmp \
+	    PREFIX=/usr \
+	    UDEVDIR=/usr/lib/udev/rules.d
+# UDEVDIR is overridden away from the Makefile's default of
+# /etc/udev/rules.d. Debian reserves /etc/udev/rules.d for the
+# administrator; a package's own rules belong in /usr/lib/udev/rules.d,
+# where they are not a conffile and an admin overrides them by dropping a
+# same-named file into /etc. Ordering is unaffected -- udev merges all three
+# rules directories and sorts by file name, so 72- still runs before
+# 73-seat-late.rules, which is the constraint that makes TAG+="uaccess" work.
+#
+# The unit is generated from montech-hyperflow.service.in with @BINDIR@
+# substituted from PREFIX, so with PREFIX=/usr it already points at
+# /usr/bin. Asserted rather than rewritten: the unit is Type=exec, so a wrong
+# ExecStart is a 203/EXEC failure at every start, and it is much cheaper to
+# catch that here than in a bug report.
+	grep -q '^ExecStart=/usr/bin/montech-hyperflow ' \
+	    debian/tmp/usr/lib/systemd/system/montech-hyperflow.service
+
+# The service is opt-in. --no-enable keeps the daemon-reload and the
+# deb-systemd-helper bookkeeping while leaving the decision to the admin,
+# who is told by the package description to run "montech-hyperflow --list"
+# first.
+override_dh_installsystemd:
+	dh_installsystemd --no-enable --no-start
+
+# One shared doc directory: /usr/share/doc/montech-hyperflow-tray becomes a
+# symlink. Legal because the tray depends on exactly (= ${binary:Version}).
+override_dh_installdocs:
+	dh_installdocs --link-doc=montech-hyperflow
+
+# Anything the Makefile stages into debian/tmp that no .install file claims
+# is a packaging bug, not something to ship silently. debian/not-installed
+# lists the one intentional exception (the bundled GPL text, which Debian
+# takes from /usr/share/common-licenses instead).
+override_dh_missing:
+	dh_missing --fail-missing

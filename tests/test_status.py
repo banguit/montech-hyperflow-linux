@@ -118,3 +118,36 @@ class TrayServiceLayer(unittest.TestCase):
         source = inspect.getsource(service)
         self.assertNotIn("import gi", source)
         self.assertNotIn("Gtk", source)
+
+
+class ExplicitPathIsAuthoritative(unittest.TestCase):
+    """read(path) must never answer from a different daemon's status file.
+
+    Regression: search_paths() used to append the XDG_RUNTIME_DIR fallback
+    even when the caller named a path, so read("/tmp/absent") could return a
+    live record from /run/user/N/montech-hyperflow/status.json.
+    """
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.dir, True)
+
+    def test_named_path_is_the_only_path_searched(self):
+        self.assertEqual(S.search_paths("/tmp/somewhere/status.json"),
+                         ["/tmp/somewhere/status.json"])
+
+    def test_absent_named_path_is_none_even_with_a_live_fallback(self):
+        fallback = S._fallback_dir()
+        if fallback:
+            os.makedirs(fallback, exist_ok=True)
+            live = os.path.join(fallback, "status.json")
+            with open(live, "w") as fh:
+                json.dump({"celsius": 99, "updated": time.time()}, fh)
+            self.addCleanup(lambda: os.path.exists(live) and os.unlink(live))
+        self.assertIsNone(S.read(os.path.join(self.dir, "absent.json")))
+
+    def test_default_still_searches_the_fallback(self):
+        paths = S.search_paths()
+        self.assertEqual(paths[0], S.STATUS_PATH)
+        if S._fallback_dir():
+            self.assertEqual(len(paths), 2)

@@ -1,0 +1,39 @@
+#!/bin/sh
+# Only the two things debhelper cannot do for us. The icon cache, the desktop
+# database, systemctl daemon-reload and the deb-systemd-helper bookkeeping
+# are all generated into #DEBHELPER# by dh_icons and dh_installsystemd.
+set -e
+
+case "$1" in
+configure)
+    # The unit runs DynamicUser=yes with SupplementaryGroups=plugdev and the
+    # udev rule puts the display's hidraw node in GROUP="plugdev". Debian and
+    # Ubuntu already have the group; create it if a derivative does not,
+    # because systemd refuses to start a unit whose supplementary group
+    # cannot be resolved.
+    if ! getent group plugdev >/dev/null 2>&1; then
+        addgroup --system plugdev >/dev/null 2>&1 || true
+    fi
+
+    # udevd reloads rule files by itself, but a reload only affects devices
+    # that appear afterwards. This cooler is bolted inside the case and was
+    # enumerated at boot, so without an explicit re-trigger its
+    # MODE/GROUP/uaccess would not apply until the next reboot.
+    if command -v udevadm >/dev/null 2>&1; then
+        udevadm control --reload >/dev/null 2>&1 || true
+        udevadm trigger --subsystem-match=hidraw --action=add >/dev/null 2>&1 || true
+    fi
+    ;;
+
+abort-upgrade|abort-remove|abort-deconfigure)
+    ;;
+
+*)
+    echo "postinst called with unknown argument '$1'" >&2
+    exit 1
+    ;;
+esac
+
+#DEBHELPER#
+
+exit 0

@@ -1,0 +1,72 @@
+#!/bin/sh
+# Maintainer script for the single .deb produced by "make deb".
+#
+# Everything here has to be safe to run twice, safe to run in a build chroot
+# or a container where there is no udevd and no systemd, and safe on a
+# headless box where none of the GUI helper tools exist. That is why every
+# external command is probed with "command -v" and every call is swallowed
+# with "|| true" -- a driver package must never fail an install because a
+# desktop cache could not be refreshed.
+set -e
+
+ICON_THEME_DIR=/usr/share/icons/hicolor
+DESKTOP_DIR=/usr/share/applications
+
+case "$1" in
+configure)
+    # The systemd unit runs DynamicUser=yes with SupplementaryGroups=plugdev,
+    # and the udev rule puts the display's hidraw node in GROUP="plugdev".
+    # Debian and Ubuntu ship that group already; create it if some derivative
+    # does not, because systemd refuses to start a unit whose supplementary
+    # group cannot be resolved.
+    if ! getent group plugdev >/dev/null 2>&1; then
+        if command -v addgroup >/dev/null 2>&1; then
+            addgroup --system plugdev >/dev/null 2>&1 || true
+        elif command -v groupadd >/dev/null 2>&1; then
+            groupadd --system plugdev >/dev/null 2>&1 || true
+        fi
+    fi
+
+    # udevd notices a new rules file on its own through inotify, but a reload
+    # only changes what happens to devices that appear *afterwards*. This
+    # cooler is bolted inside the case and was enumerated at boot, so without
+    # an explicit re-trigger its MODE/GROUP/uaccess would not be applied until
+    # the next reboot and "montech-hyperflow --list" would report the node as
+    # not writable right after a successful install.
+    if command -v udevadm >/dev/null 2>&1; then
+        udevadm control --reload >/dev/null 2>&1 || true
+        udevadm trigger --subsystem-match=hidraw --action=add >/dev/null 2>&1 || true
+    fi
+
+    # Both of these live in packages that are only Recommends here, so they
+    # are genuinely expected to be missing on a headless install.
+    if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+        gtk-update-icon-cache -f -t "$ICON_THEME_DIR" >/dev/null 2>&1 || true
+    fi
+    if command -v update-desktop-database >/dev/null 2>&1; then
+        update-desktop-database -q "$DESKTOP_DIR" >/dev/null 2>&1 || true
+    fi
+
+    # /run/systemd/system exists only when systemd is the running init; the
+    # test keeps this quiet inside chroots and containers.
+    if [ -d /run/systemd/system ] && command -v systemctl >/dev/null 2>&1; then
+        systemctl daemon-reload >/dev/null 2>&1 || true
+        # try-restart is a no-op unless the service is already running, so on
+        # a first install nothing starts and on an upgrade the running daemon
+        # picks up the new code. There is deliberately NO "systemctl enable":
+        # whether the pump head is driven at boot is the admin's decision, and
+        # the README asks them to confirm the device is found first.
+        systemctl try-restart montech-hyperflow.service >/dev/null 2>&1 || true
+    fi
+    ;;
+
+abort-upgrade|abort-remove|abort-deconfigure)
+    ;;
+
+*)
+    echo "postinst called with unknown argument '$1'" >&2
+    exit 1
+    ;;
+esac
+
+exit 0

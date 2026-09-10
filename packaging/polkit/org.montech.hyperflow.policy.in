@@ -2,6 +2,10 @@
 <!DOCTYPE policyconfig PUBLIC
  "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
  "http://www.freedesktop.org/software/polkit/policyconfig-1.dtd">
+<!-- Generated from org.montech.hyperflow.policy.in at install time.
+     exec.path must be the ABSOLUTE path pkexec will invoke; polkit matches on
+     it exactly, so a policy naming /usr/bin while the helper lives in
+     /usr/local/bin silently refuses every request. -->
 <policyconfig>
   <vendor>montech-hyperflow</vendor>
   <vendor_url>https://github.com/OWNER/montech-hyperflow</vendor_url>
@@ -18,7 +22,7 @@
            can only write validated keys into /etc/montech-hyperflow.conf. -->
       <allow_active>auth_admin_keep</allow_active>
     </defaults>
-    <annotate key="org.freedesktop.policykit.exec.path">/usr/bin/montech-hyperflow-admin</annotate>
+    <annotate key="org.freedesktop.policykit.exec.path">@BINDIR@/montech-hyperflow-admin</annotate>
     <annotate key="org.freedesktop.policykit.exec.allow_gui">true</annotate>
   </action>
 </policyconfig>

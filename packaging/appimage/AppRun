@@ -1,0 +1,131 @@
+#!/bin/sh
+# AppRun -- entry point for the montech-hyperflow AppImage.
+#
+# UNOFFICIAL community driver for the Montech HyperFlow Digital pump-head
+# display (USB 1a2c:4e85, OEM platform TCOMAS DH-C100). Not affiliated with
+# or endorsed by Montech.
+#
+# One AppImage, several front ends. Which one runs is decided in this order:
+#
+#   1. an explicit first argument: tray | cli | admin | setup | help
+#   2. the name it was invoked as, so a symlink called
+#      montech-hyperflow-tray runs the tray and one called
+#      montech-hyperflow runs the CLI
+#   3. otherwise: arguments present -> the CLI, because the tray takes no
+#      options; no arguments at all -> the tray, because that is what
+#      double-clicking the file in a file manager means
+#
+# This AppImage bundles the driver, not an interpreter: the code is pure
+# Python standard library, so it runs on the host's python3 (>= 3.8). The
+# tray additionally needs the host's PyGObject, GTK 3 and
+# AyatanaAppIndicator3 typelib. See README.md next to this file.
+set -eu
+
+usage() {
+    cat <<'EOF'
+montech-hyperflow (unofficial driver for the Montech HyperFlow Digital
+pump-head display, USB 1a2c:4e85 / TCOMAS DH-C100)
+
+  <appimage>                 start the panel indicator (the default)
+  <appimage> tray            the same, explicitly
+  <appimage> cli [OPTIONS]   the driver and CLI; --help lists its options
+  <appimage> admin ...       the privileged config helper (root/pkexec only)
+  sudo <appimage> setup      one-time host setup: install the udev rule and
+                             add you to the plugdev group
+
+Any argument that is not one of those words goes to the CLI, so
+`<appimage> --list` and `<appimage> cli --list` are the same thing.
+
+Symlink the AppImage to montech-hyperflow-tray or montech-hyperflow to pick a
+mode by name instead.
+EOF
+}
+
+# $APPDIR is exported by the AppImage runtime. It is unset when AppRun is run
+# straight out of an extracted AppDir, so fall back to our own directory;
+# readlink -f resolves a symlinked AppRun too.
+if [ -n "${APPDIR:-}" ]; then
+    appdir=$APPDIR
+else
+    appdir=$(dirname "$(readlink -f "$0")")
+fi
+libdir=$appdir/usr/lib/montech-hyperflow
+
+# The runtime exports ARGV0 as the name the user actually typed, which is the
+# only way to see through a symlink: $0 is the extracted AppRun path and says
+# nothing about how we were called. A renamed .AppImage works too, since its
+# filename is what ends up in ARGV0.
+self=$(basename "${ARGV0:-$0}")
+mode=
+case "$self" in
+    *tray*)  mode=tray ;;
+    *admin*) mode=admin ;;
+    *setup*) mode=setup ;;
+    montech-hyperflow|*cli*) mode=cli ;;
+esac
+
+case "${1:-}" in
+    tray|cli|admin|setup)
+        mode=$1
+        shift
+        ;;
+    help|--modes)
+        usage
+        exit 0
+        ;;
+esac
+
+if [ -z "$mode" ]; then
+    if [ "$#" -gt 0 ]; then mode=cli; else mode=tray; fi
+fi
+
+if [ "$mode" = setup ]; then
+    # Refuses to run unless it is root, and says so clearly. Not our job here.
+    exec "$appdir/usr/bin/montech-hyperflow-setup" "$@"
+fi
+
+# Ours first, but keep anything the user set: a developer pointing PYTHONPATH
+# at a checkout should still win over nothing.
+PYTHONPATH=$libdir${PYTHONPATH:+:$PYTHONPATH}
+# The AppDir is a read-only squashfs; there is nowhere to put .pyc files.
+PYTHONDONTWRITEBYTECODE=1
+# So GTK finds the montech-hyperflow icons in the bundle's hicolor theme.
+# XDG_DATA_DIRS has a specified default that must be preserved when it is
+# unset, or unsetting it silently loses the system themes.
+XDG_DATA_DIRS=$appdir/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}
+# APPENDED, never prepended. The tray resolves montech-hyperflow-admin by
+# name and hands it to pkexec, which must get the root-owned copy from a real
+# system install -- not one inside a squashfs mounted by the calling user.
+PATH=${PATH:-/usr/bin:/bin}:$appdir/usr/bin
+export PYTHONPATH PYTHONDONTWRITEBYTECODE XDG_DATA_DIRS PATH
+
+py=${MONTECH_PYTHON:-python3}
+if ! command -v "$py" >/dev/null 2>&1; then
+    echo "montech-hyperflow: no '$py' on PATH." >&2
+    echo "This AppImage bundles the driver, not an interpreter; it needs the" >&2
+    echo "host's python3 (3.8 or newer). Set MONTECH_PYTHON to point at one." >&2
+    exit 127
+fi
+
+case "$mode" in
+    tray)  entry=tray.app ;;
+    admin) entry=admin ;;
+    *)     entry=cli ;;
+esac
+
+# Deliberately not exec'ing usr/bin/montech-hyperflow: the Makefile's
+# generated wrappers hardcode an absolute /usr/lib/montech-hyperflow and put
+# it first on sys.path, so on a machine that also has the distro package
+# installed the AppImage would silently run *that* copy. Launch out of the
+# AppDir instead. The cwd entry is dropped for the same reason it is in
+# wrapper.in: `admin` can run as root, and a shadowing module in the working
+# directory would be a privilege-escalation path.
+MH_LIBDIR=$libdir
+MH_ENTRY=$entry
+export MH_LIBDIR MH_ENTRY
+exec "$py" -c 'import os, sys
+sys.path[:] = [p for p in sys.path if p not in ("", ".", None)]
+sys.path.insert(0, os.environ["MH_LIBDIR"])
+mod = __import__("montech_hyperflow." + os.environ["MH_ENTRY"],
+                 fromlist=["main"])
+sys.exit(mod.main())' "$@"

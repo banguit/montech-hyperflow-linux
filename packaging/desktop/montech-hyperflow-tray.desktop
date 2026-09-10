@@ -2,7 +2,7 @@
 Type=Application
 Name=Montech HyperFlow
 GenericName=Pump-head display
-Comment=Show and control the AIO pump-head temperature display
+Comment=Show and control the AIO pump-head temperature display (unofficial driver, not affiliated with Montech)
 Exec=montech-hyperflow-tray
 Icon=montech-hyperflow
 Terminal=false
