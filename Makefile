@@ -58,7 +58,19 @@ lint:
 	@command -v udevadm >/dev/null && udevadm verify packaging/udev/*.rules || echo "  (udevadm verify unavailable)"
 	@command -v desktop-file-validate >/dev/null && desktop-file-validate packaging/desktop/*.desktop || echo "  (desktop-file-validate unavailable)"
 	@$(PYTHON) -c "import xml.dom.minidom as m;m.parse('packaging/polkit/org.montech.hyperflow.policy.in');print('  polkit policy OK')"
-	@for f in packaging/icons/*/apps/*.svg; do $(PYTHON) -c "import xml.dom.minidom,sys;xml.dom.minidom.parse(sys.argv[1])" "$$f" || exit 1; done; echo "  icons OK"
+	@for f in packaging/icons/*/apps/*.svg; do $(PYTHON) -c "import xml.dom.minidom,sys;xml.dom.minidom.parse(sys.argv[1])" "$$f" || exit 1; done
+	@# Valid XML is not enough: gdk-pixbuf sniffs the image format from the
+	@# first bytes of the file, so an SVG whose root element is pushed past
+	@# that window by a leading comment loads fine in an XML parser and then
+	@# fails at runtime with "couldn't recognize the image file format".
+	@for f in packaging/icons/*/apps/*.svg; do \
+	    off=$$($(PYTHON) -c "import sys;print(open(sys.argv[1],'rb').read().find(b'<svg'))" "$$f"); \
+	    if [ "$$off" -lt 0 ] || [ "$$off" -gt 128 ]; then \
+	        echo "  FAIL $$f: <svg> starts at byte $$off; keep it under 128 (move comments inside the element)"; \
+	        exit 1; \
+	    fi; \
+	done
+	@$(PYTHON) -c "import gi;gi.require_version('GdkPixbuf','2.0');from gi.repository import GdkPixbuf;import glob,sys;[GdkPixbuf.Pixbuf.new_from_file_at_scale(f,16,16,True) for f in glob.glob('packaging/icons/*/apps/*.svg')];print('  icons OK (parse + 16px load)')" 2>/dev/null || echo "  icons OK (parse only; no GdkPixbuf here)"
 	@sh -n packaging/systemd/montech-hyperflow-sleep && echo "  sleep hook OK"
 
 install: install-core
