@@ -1,20 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
-  <!-- Pump head seen face-on: round body, square digital display. -->
-  <circle cx="24" cy="24" r="21" fill="#2a2e37"/>
-  <circle cx="24" cy="24" r="21" fill="none" stroke="#4d5566" stroke-width="2"/>
-  <rect x="10" y="16" width="28" height="16" rx="2.5" fill="#11141a"/>
-  <!-- seven-segment "42" -->
-  <g fill="#6b7280">
-    <rect x="13.5" y="18"   width="1.8" height="4.6" rx="0.9"/>
-    <rect x="19.1" y="18"   width="1.8" height="4.6" rx="0.9"/>
-    <rect x="13.7" y="22.6" width="7.0" height="1.8" rx="0.9"/>
-    <rect x="19.1" y="24.4" width="1.8" height="4.6" rx="0.9"/>
-    <rect x="25.5" y="18"   width="7.0" height="1.8" rx="0.9"/>
-    <rect x="30.7" y="19.8" width="1.8" height="3.6" rx="0.9"/>
-    <rect x="25.7" y="22.6" width="7.0" height="1.8" rx="0.9"/>
-    <rect x="25.5" y="24.4" width="1.8" height="3.6" rx="0.9"/>
-    <rect x="25.7" y="27.2" width="7.0" height="1.8" rx="0.9"/>
-  </g>
-  <circle cx="35" cy="19.5" r="1.4" fill="#6b7280" opacity="0.55"/>
+  <!-- Idle variant: display unlit. The Montech HyperFlow pump head, drawn from scratch from the product's
+       own geometry: octagonal body, dark display, a ten-segment level bar
+       running amber to red, white seven-segment digits, green unit mark.
+       No vendor artwork is used or reproduced. -->
+  <path d="M15.00 1.50 L33.00 1.50 L46.50 15.00 L46.50 33.00 L33.00 46.50 L15.00 46.50 L1.50 33.00 L1.50 15.00 Z" fill="#23262d"/>
+  <path d="M15.00 1.50 L33.00 1.50 L46.50 15.00 L46.50 33.00 L33.00 46.50 L15.00 46.50 L1.50 33.00 L1.50 15.00 Z" fill="none" stroke="#454b58" stroke-width="1.6"/>
+  <rect x="9" y="13.5" width="30" height="21" rx="2.5" fill="#0d0f13"/>
+  <text x="17.4" y="19.8" font-family="DejaVu Sans, sans-serif" font-size="5.2"
+        font-weight="bold" fill="#343945" letter-spacing="0.4">CPU</text>
+  <g><rect x="12.2" y="30.60" width="3.0" height="1.35" rx="0.5" fill="#343945"/><rect x="12.2" y="28.75" width="3.0" height="1.35" rx="0.5" fill="#343945"/><rect x="12.2" y="26.90" width="3.0" height="1.35" rx="0.5" fill="#343945"/><rect x="12.2" y="25.05" width="3.0" height="1.35" rx="0.5" fill="#343945"/><rect x="12.2" y="23.20" width="3.0" height="1.35" rx="0.5" fill="#343945"/><rect x="12.2" y="21.35" width="3.0" height="1.35" rx="0.5" fill="#343945"/><rect x="12.2" y="19.50" width="3.0" height="1.35" rx="0.5" fill="#343945"/><rect x="12.2" y="17.65" width="3.0" height="1.35" rx="0.5" fill="#343945"/><rect x="12.2" y="15.80" width="3.0" height="1.35" rx="0.5" fill="#343945"/><rect x="12.2" y="13.95" width="3.0" height="1.35" rx="0.5" fill="#343945"/></g>
+  <g fill="#343945"><rect x="18.40" y="25.10" width="6.40" height="1.90" rx="0.90"/><rect x="18.40" y="20.40" width="1.90" height="6.60" rx="0.90"/><rect x="22.90" y="20.40" width="1.90" height="6.60" rx="0.90"/><rect x="22.90" y="25.10" width="1.90" height="6.60" rx="0.90"/><rect x="28.60" y="20.40" width="6.40" height="1.90" rx="0.90"/><rect x="28.60" y="25.10" width="6.40" height="1.90" rx="0.90"/><rect x="28.60" y="29.80" width="6.40" height="1.90" rx="0.90"/><rect x="33.10" y="20.40" width="1.90" height="6.60" rx="0.90"/><rect x="28.60" y="25.10" width="1.90" height="6.60" rx="0.90"/></g>
+  <text x="36.2" y="33.4" font-family="DejaVu Sans, sans-serif" font-size="4.2"
+        fill="#343945">°C</text>
 </svg>
