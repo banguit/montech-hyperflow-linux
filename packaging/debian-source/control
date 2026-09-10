@@ -17,9 +17,9 @@ Standards-Version: 4.7.0
 # Nothing in the build needs root: the Makefile only ever calls install(1)
 # with default ownership, and dpkg fixes the ownership up itself.
 Rules-Requires-Root: no
-Homepage: https://github.com/OWNER/montech-hyperflow
-Vcs-Browser: https://github.com/OWNER/montech-hyperflow
-Vcs-Git: https://github.com/OWNER/montech-hyperflow.git
+Homepage: https://github.com/OWNER/montech-hyperflow-linux
+Vcs-Browser: https://github.com/OWNER/montech-hyperflow-linux
+Vcs-Git: https://github.com/OWNER/montech-hyperflow-linux.git
 
 Package: montech-hyperflow
 Architecture: all

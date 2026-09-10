@@ -1,11 +1,11 @@
-# Maintainer: montech-hyperflow contributors <https://github.com/OWNER/montech-hyperflow>
+# Maintainer: montech-hyperflow contributors <https://github.com/OWNER/montech-hyperflow-linux>
 
 pkgbase=montech-hyperflow
 pkgname=('montech-hyperflow' 'montech-hyperflow-tray')
 pkgver=1.0.0
 pkgrel=1
 arch=('any')                      # pure Python, no compiled extension
-url='https://github.com/OWNER/montech-hyperflow'
+url='https://github.com/OWNER/montech-hyperflow-linux'
 # 'GPL3' is the classic Arch license identifier. Newer packaging standards
 # spell this 'GPL-3.0-or-later'; both name the same LICENSE file we ship.
 license=('GPL3')

@@ -213,8 +213,18 @@ bump:
 	 echo "bumped $$old -> $(VERSION)"
 	@$(MAKE) --no-print-directory check-version
 
+# REPO is optional and only needed if the repository is not named
+# montech-hyperflow-linux. Note the repository name and the INSTALLED names
+# differ on purpose: the repo says what it is for a human browsing GitHub,
+# while the binary, the package, the systemd unit and the config file are all
+# plain "montech-hyperflow".
 set-repo:
-	@test -n "$(OWNER)" || { echo "usage: make set-repo OWNER=yourname"; exit 2; }
+	@test -n "$(OWNER)" || { echo "usage: make set-repo OWNER=yourname [REPO=reponame]"; exit 2; }
+	@if [ -n "$(REPO)" ] && [ "$(REPO)" != "montech-hyperflow-linux" ]; then \
+	    grep -rl 'montech-hyperflow-linux' --exclude-dir=.git --exclude-dir=build . \
+	      | xargs -r sed -i 's|montech-hyperflow-linux|$(REPO)|g'; \
+	    echo "repository name set to $(REPO)"; \
+	fi
 	@grep -rl 'OWNER' --exclude-dir=.git --exclude-dir=build . \
 	   | xargs -r sed -i 's|OWNER|$(OWNER)|g'
 	@echo "repository owner set to $(OWNER)"

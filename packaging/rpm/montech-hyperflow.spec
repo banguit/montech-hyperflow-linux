@@ -46,7 +46,7 @@ Release:        1%{?dist}
 Summary:        Unofficial Linux driver for the Montech HyperFlow Digital AIO display
 
 License:        GPL-3.0-or-later
-URL:            https://github.com/OWNER/montech-hyperflow
+URL:            https://github.com/OWNER/montech-hyperflow-linux
 Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
 
 # Pure Python, no compiled objects, no arch-specific paths.

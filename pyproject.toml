@@ -35,9 +35,9 @@ montech-hyperflow-admin = "montech_hyperflow.admin:main"
 montech-hyperflow-tray = "montech_hyperflow.tray.app:main"
 
 [project.urls]
-Homepage = "https://github.com/OWNER/montech-hyperflow"
-Protocol = "https://github.com/OWNER/montech-hyperflow/blob/main/docs/PROTOCOL.md"
-Issues = "https://github.com/OWNER/montech-hyperflow/issues"
+Homepage = "https://github.com/OWNER/montech-hyperflow-linux"
+Protocol = "https://github.com/OWNER/montech-hyperflow-linux/blob/main/docs/PROTOCOL.md"
+Issues = "https://github.com/OWNER/montech-hyperflow-linux/issues"
 
 [tool.setuptools.dynamic]
 version = {attr = "montech_hyperflow.__version__"}

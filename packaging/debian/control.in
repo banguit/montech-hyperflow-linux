@@ -5,7 +5,7 @@ Priority: optional
 Architecture: all
 Multi-Arch: foreign
 Maintainer: montech-hyperflow contributors <OWNER@users.noreply.github.com>
-Homepage: https://github.com/OWNER/montech-hyperflow
+Homepage: https://github.com/OWNER/montech-hyperflow-linux
 Depends: python3 (>= 3.8), adduser, udev
 Recommends: systemd, python3-gi, gir1.2-gtk-3.0,
  gir1.2-ayatanaappindicator3-0.1, polkitd | policykit-1

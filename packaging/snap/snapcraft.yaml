@@ -52,9 +52,9 @@ adopt-info: montech-hyperflow
 
 license: GPL-3.0-or-later
 icon: packaging/icons/scalable/apps/montech-hyperflow.svg
-website: https://github.com/OWNER/montech-hyperflow
-source-code: https://github.com/OWNER/montech-hyperflow
-issues: https://github.com/OWNER/montech-hyperflow/issues
+website: https://github.com/OWNER/montech-hyperflow-linux
+source-code: https://github.com/OWNER/montech-hyperflow-linux
+issues: https://github.com/OWNER/montech-hyperflow-linux/issues
 
 # base: core22, not core24.
 #

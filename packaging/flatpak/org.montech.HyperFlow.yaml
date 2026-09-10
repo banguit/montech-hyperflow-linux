@@ -294,6 +294,6 @@ modules:
       # above and use this instead, with a real commit pinned:
       #
       # - type: git
-      #   url: https://github.com/OWNER/montech-hyperflow.git
+      #   url: https://github.com/OWNER/montech-hyperflow-linux.git
       #   tag: v1.0.0
       #   commit: <fill in with: git rev-parse v1.0.0^{commit}>

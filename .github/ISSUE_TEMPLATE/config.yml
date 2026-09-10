@@ -4,14 +4,14 @@
 blank_issues_enabled: true
 contact_links:
   - name: Read the protocol notes first
-    url: https://github.com/OWNER/montech-hyperflow/blob/main/docs/PROTOCOL.md
+    url: https://github.com/OWNER/montech-hyperflow-linux/blob/main/docs/PROTOCOL.md
     about: Every claim about the wire format, with its confidence level and the evidence behind it.
   - name: Pick an experiment to run
-    url: https://github.com/OWNER/montech-hyperflow/blob/main/docs/EXPERIMENTS.md
+    url: https://github.com/OWNER/montech-hyperflow-linux/blob/main/docs/EXPERIMENTS.md
     about: The open questions, written up so anyone with the cooler can answer one in ten minutes.
   - name: Questions and discussion
-    url: https://github.com/OWNER/montech-hyperflow/discussions
+    url: https://github.com/OWNER/montech-hyperflow-linux/discussions
     about: Not sure whether your cooler is the same hardware, or whether something is a bug? Ask here.
   - name: This is not Montech software
-    url: https://github.com/OWNER/montech-hyperflow/blob/main/NOTICE.md
+    url: https://github.com/OWNER/montech-hyperflow-linux/blob/main/NOTICE.md
     about: An unofficial community driver. Do not contact Montech, TCOMAS or SEMICO about it.

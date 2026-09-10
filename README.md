@@ -43,9 +43,13 @@ Got a rebrand that works? [Open an issue](../../issues) and say so.
 
 ## Install
 
+> The repository is `montech-hyperflow-linux`; everything it installs is
+> plain `montech-hyperflow` — the command, the package, the systemd unit and
+> the config file.
+
 ```bash
-git clone https://github.com/OWNER/montech-hyperflow
-cd montech-hyperflow
+git clone https://github.com/OWNER/montech-hyperflow-linux
+cd montech-hyperflow-linux
 make test                # no hardware needed, should be all green
 sudo make install        # the driver, the service, device permissions
 sudo make install-tray   # optional: the panel indicator

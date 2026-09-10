@@ -94,10 +94,10 @@
     <keyword>DH-C100</keyword>
   </keywords>
 
-  <url type="homepage">https://github.com/OWNER/montech-hyperflow</url>
-  <url type="bugtracker">https://github.com/OWNER/montech-hyperflow/issues</url>
-  <url type="help">https://github.com/OWNER/montech-hyperflow/blob/main/README.md</url>
-  <url type="vcs-browser">https://github.com/OWNER/montech-hyperflow</url>
+  <url type="homepage">https://github.com/OWNER/montech-hyperflow-linux</url>
+  <url type="bugtracker">https://github.com/OWNER/montech-hyperflow-linux/issues</url>
+  <url type="help">https://github.com/OWNER/montech-hyperflow-linux/blob/main/README.md</url>
+  <url type="vcs-browser">https://github.com/OWNER/montech-hyperflow-linux</url>
 
   <provides>
     <binary>montech-hyperflow-tray</binary>
@@ -111,7 +111,7 @@
 
   <releases>
     <release version="1.0.0" date="2026-09-10" type="stable">
-      <url type="details">https://github.com/OWNER/montech-hyperflow/releases/tag/v1.0.0</url>
+      <url type="details">https://github.com/OWNER/montech-hyperflow-linux/releases/tag/v1.0.0</url>
       <description>
         <p>Confirmed working on real hardware.</p>
         <ul>
