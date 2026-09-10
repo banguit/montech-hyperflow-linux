@@ -1,20 +1,86 @@
 [Unit]
 Description=Montech HyperFlow Digital pump-head display
-After=multi-user.target
+Documentation=file:/usr/share/doc/montech-hyperflow/PROTOCOL.md
+Documentation=file:/usr/share/doc/montech-hyperflow/README.md
+
+# No ordering keys on purpose.
+#
+# The old unit had "After=multi-user.target" while also being
+# WantedBy=multi-user.target. A target is automatically ordered After= the
+# units it Wants, so this pushed the service to the very end of boot, behind
+# snapd, containerd, docker, cups and every snap mount -- the head stayed dark
+# for all of it. The implicit After=basic.target that every
+# DefaultDependencies=yes service gets is the correct and sufficient
+# constraint: systemd-udevd is ordered Before=sysinit.target, so /dev/hidraw*
+# already exists.
+#
+# There is deliberately no BindsTo= on a .device unit either: udev does not tag
+# hidraw or usb_interface devices with "systemd", so no .device unit is ever
+# generated for this hardware. The daemon rediscovers and reopens the device
+# itself instead, which also covers a resume that re-enumerates it under a
+# different hidrawN.
 
 [Service]
-Type=simple
-ExecStart=/usr/local/bin/montech-hyperflow.py --source cpu
-ExecStopPost=-/usr/local/bin/montech-hyperflow.py --blank-on-exit --interval 0.1
-Restart=always
+Type=exec
+ExecStart=/usr/local/bin/montech-hyperflow --source cpu --blank-on-exit
+
+# Type=exec, not simple: with Type=simple systemd reports success the moment it
+# forks, so a missing or non-executable ExecStart becomes a silent infinite
+# restart loop. Type=exec fails loudly if the binary cannot be executed.
+#
+# There is no ExecStopPost=. The old unit ran the driver a second time with
+# --blank-on-exit, but that flag only takes effect after the main loop ends --
+# so the "cleanup" process re-sent the 0xFD init frame and then streamed live
+# temperatures at 10 Hz until systemd's 90 s stop timeout killed it. Every
+# stop, restart and reboot paid that. --blank-on-exit on ExecStart above does
+# the blanking properly, in the process that owns the device.
+TimeoutStopSec=10
+
+Restart=on-failure
 RestartSec=5
-# Drop privileges once the udev rule is in place:
-#User=youruser
-#Group=plugdev
-NoNewPrivileges=true
-ProtectSystem=strict
-ProtectHome=true
-PrivateTmp=true
+# Exit 78 (EX_CONFIG) means a permanent misconfiguration -- no sensor, bad
+# config file, no write permission. Restarting cannot fix it.
+RestartPreventExitStatus=78
+
+# A transient system user, created and destroyed with the unit, that is a
+# member of plugdev. That is what the udev rule's GROUP="plugdev" grants
+# access to. (The rule's TAG+="uaccess" covers an interactive desktop session;
+# a boot-time service is not a seat session, so plugdev is the half that
+# matters here.)
+DynamicUser=yes
+SupplementaryGroups=plugdev
+
+# Hardening. DynamicUser= already implies ProtectSystem=strict,
+# ProtectHome=read-only, PrivateTmp=yes, NoNewPrivileges=yes and RemoveIPC=yes.
+#
+# DO NOT ADD PrivateDevices=yes. It replaces /dev with a minimal set of
+# pseudo-devices, which deletes /dev/hidraw* -- the device this unit exists to
+# drive -- and /dev/nvidia* along with it.
+# DO NOT ADD ProcSubset=pid without testing; it is fine for nvidia-smi today
+# but hides /proc/driver.
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+# @system-service includes ioctl, which HIDIOCSFEATURE needs; @default does not.
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+CapabilityBoundingSet=
+DevicePolicy=closed
+DeviceAllow=char-hidraw rw
+# For --source gpu on an NVIDIA box, also uncomment these (nvidia-smi talks to
+# the driver through them; they are mode 0666 so no group is needed):
+#DeviceAllow=/dev/nvidiactl rw
+#DeviceAllow=/dev/nvidia0 rw
+#DeviceAllow=/dev/nvidia1 rw
 
 [Install]
 WantedBy=multi-user.target

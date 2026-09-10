@@ -1,0 +1,28 @@
+#!/bin/sh
+# systemd-sleep hook: blank the pump head before suspend/hibernate.
+#
+# Installed as /usr/lib/systemd/system-sleep/montech-hyperflow.
+#
+# This is the correct mechanism, NOT a unit with WantedBy=sleep.target: on many
+# systems (including the one this was developed on) sleep.target is masked, and
+# a unit wanted by a masked target is silently never started. systemd-sleep
+# hooks run from systemd-suspend.service regardless.
+#
+# Nothing is needed on resume: the daemon rediscovers and reopens the device by
+# itself, re-sending the 0xFD init frame, so a re-enumeration across resume
+# heals within one interval.
+set -e
+case "$1/$2" in
+    pre/*)
+        systemctl is-active --quiet montech-hyperflow.service || exit 0
+        # Stop the daemon; --blank-on-exit on ExecStart clears the head.
+        systemctl stop montech-hyperflow.service || true
+        touch /run/montech-hyperflow.resume
+        ;;
+    post/*)
+        if [ -e /run/montech-hyperflow.resume ]; then
+            rm -f /run/montech-hyperflow.resume
+            systemctl start montech-hyperflow.service || true
+        fi
+        ;;
+esac

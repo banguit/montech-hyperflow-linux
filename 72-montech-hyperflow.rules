@@ -1,0 +1,40 @@
+# Montech HyperFlow Digital 240/360 pump-head display (TCOMAS DH-C100 platform)
+#
+# The cooler enumerates as USB 1a2c:4e85 with the generic OEM product string
+# "USB Gaming Keyboard" and exposes TWO HID interfaces:
+#
+#   interface 00 -> boot keyboard protocol, backs a real keyboard input node.
+#                   It has no vendor collection and nothing to say to us.
+#                   Read access here is a keystroke-capture risk, so this rule
+#                   deliberately does NOT match it.
+#   interface 01 -> carries the vendor collection UsagePage 0xFF01 / Usage 0x01
+#                   with feature report 0x07. This is the display.
+#
+# FILE NAME MATTERS. systemd invokes the "uaccess" builtin from
+# 73-seat-late.rules:
+#     TAG=="uaccess|xaccess-*", ENV{MAJOR}!="", RUN{builtin}+="uaccess"
+# udev evaluates rule files in lexical order, so TAG+="uaccess" set by a 99-*
+# file is added AFTER the line that consumes it and is silently ignored. The
+# name must sort before 73-seat-late.rules; 72 also keeps it after
+# 60-persistent-hidraw.rules, which is where IMPORT{builtin}="usb_id" sets
+# ID_USB_INTERFACE_NUM.
+#
+# WHY ENV{ID_USB_INTERFACE_NUM} AND NOT ATTRS{bInterfaceNumber}. All ATTRS{}
+# keys in one rule must match on a SINGLE parent device. idVendor/idProduct
+# live on the USB device node (3-14) while bInterfaceNumber lives on the
+# interface node (3-14:1.1), so combining them matches nothing at all. ENV{} is
+# a property of the hidraw device itself and composes freely with ATTRS{}.
+#
+# uaccess covers the logged-in seat user; MODE/GROUP is the fallback for
+# headless or pre-login use (a system service starting at boot). Keep both.
+
+ACTION=="remove", GOTO="montech_hyperflow_end"
+SUBSYSTEM!="hidraw", GOTO="montech_hyperflow_end"
+KERNEL!="hidraw*", GOTO="montech_hyperflow_end"
+
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="1a2c", ATTRS{idProduct}=="4e85", \
+    ENV{ID_USB_INTERFACE_NUM}=="01", \
+    MODE="0660", GROUP="plugdev", TAG+="uaccess", \
+    SYMLINK+="montech-hyperflow"
+
+LABEL="montech_hyperflow_end"

@@ -1,0 +1,46 @@
+# montech-hyperflow configuration
+#
+# Search order (first file found wins; command-line flags always override):
+#   1. --config PATH
+#   2. $XDG_CONFIG_HOME/montech-hyperflow.conf  (~/.config/montech-hyperflow.conf)
+#   3. /etc/montech-hyperflow.conf
+#
+# Keys mirror the long options; dashes and underscores are interchangeable.
+
+[montech-hyperflow]
+
+# cpu (default) or gpu
+source = cpu
+
+# Explicit hwmon input. Leave unset to autodetect (k10temp/coretemp package
+# sensor). Prefer a /sys/devices/... path over /sys/class/hwmon/hwmonN, whose
+# index depends on module probe order.
+# sensor = /sys/class/hwmon/hwmon3/temp1_input
+
+# Which card, for source = gpu on a multi-GPU box with no hwmon sensor.
+# gpu_index = 0
+
+# Display in Fahrenheit. Note the vendor quirk this preserves: the digits are
+# Fahrenheit but the colour/intensity level is still derived from Celsius.
+fahrenheit = no
+
+# Update period in seconds. The vendor app uses 1.0. Floor is 0.05.
+interval = 1.0
+
+# nearest (default) or truncate. The vendor app truncates; "nearest" matches
+# what `sensors` prints more closely.
+rounding = nearest
+
+# What to show when the sensor read fails: hold the last good value, or blank.
+# It never displays 0 -- that is a real temperature and would be a lie.
+on_sensor_error = hold
+
+# Seconds to hold a stale value before blanking. 0 holds forever.
+sensor_error_blank_after = 30
+
+# Clear the display on exit.
+blank_on_exit = yes
+
+# Explicit device node. Leave unset to autodetect by report descriptor.
+# The udev rule also creates a stable /dev/montech-hyperflow symlink.
+# device = /dev/montech-hyperflow

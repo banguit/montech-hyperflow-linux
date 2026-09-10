@@ -14,7 +14,7 @@ Addresses below are from `DeviceDriver.exe` at its default image base
 | Match method | vendor app uppercases the device-interface path and does `wcsstr` for `VID_1A2C&PID_4E85` (`fcn.00405bd0` @ `0x00405c81`) |
 | HID collection | UsagePage `0xFF01`, Usage `0x01` (`fcn.00405d80` @ `0x00405dff`/`0x00405e0b`) |
 | Transport | HID **feature** report via `HidD_SetFeature` (`fcn.0040c410` @ `0x0040c429`) |
-| Report length | 65 bytes = 1 report-ID byte + 64 payload |
+| Report length | 64 bytes = 1 report-ID byte + 63 payload — **corrected on-device**, see [Report length](#report-length-corrected) |
 | Cadence | `Sleep(1000)` between frames (`0x00408faf`) |
 
 VID `0x1A2C` is a generic Chinese HID vendor ID. The UI resources name the OEM
@@ -23,6 +23,50 @@ pump head very likely speak this protocol unchanged.
 
 `HidD_GetFeature` is resolved at load time but never called — the display is
 write-only. There is no handshake to wait for and nothing to read back.
+
+<a name="report-length-corrected"></a>
+### Report length — corrected against the hardware
+
+The device's own report descriptor settles this; it is no longer an inference.
+Read back from `/sys/class/hidraw/hidraw5/device/report_descriptor` on a real
+HyperFlow Digital 240 (interface 1 of `1a2c:4e85`), parsed with an item walker:
+
+```
+06 01 FF     Usage Page (Vendor 0xFF01)
+09 01        Usage (0x01)
+A1 01        Collection (Application)
+85 07          Report ID (7)
+09 03          Usage (0x03)
+15 00          Logical Minimum (0)
+26 FF 00       Logical Maximum (255)
+75 08          Report Size (8)
+95 3F          Report Count (63)          <-- 63, not 64
+B1 02          Feature (Data,Var,Abs)
+09 04          Usage (0x04)
+15 00 26 FF 00 75 08 95 3F
+91 02          Output (Data,Var,Abs)      <-- a second, unused path
+C0           End Collection
+```
+
+`Report Count 0x3F` = 63 data bytes. With the report-ID byte that
+`HIDIOCSFEATURE` expects in `buf[0]`, the buffer is **64 bytes**, and the
+control transfer carries `wValue=0x0307`, `wIndex=1`, `wLength=64`.
+
+**This means the vendor app never sent 65 bytes.** Windows `HidD_SetFeature`
+silently truncates a buffer longer than `caps.FeatureReportByteLength` — hidapi
+documents exactly this in `hid_send_feature_report()` — and for this descriptor
+that length is 64. So the app's 65-byte temperature buffers went out as 64 on
+the wire, identical to its 64-byte `0xFD` startup frame. There was no
+off-by-one in the vendor code at all; the off-by-one was in these notes.
+
+Linux does not truncate. `hidraw_send_report()` takes the length from
+`_IOC_SIZE(cmd)` verbatim and `usbhid_set_raw_report()` passes it straight to
+`usb_control_msg()`; nothing between them clamps it against the parsed report
+length. `HIDIOCSFEATURE(65)` therefore puts a genuinely oversized SET_REPORT on
+a low-speed (`bMaxPacketSize0 = 8`) control pipe.
+
+The descriptor also declares an **Output** instance of report 7, same 63 bytes.
+The vendor app does not use it. It is an untested alternative path.
 
 ## Frame layout
 
@@ -36,7 +80,7 @@ Report ID `0x07`, then:
 | 3 | ones digit |
 | 4 | `(level << 4) | unit` |
 | 5 | source: `0` = CPU, `1` = GPU |
-| 6–64 | zero |
+| 6–63 | zero |
 
 - `level` = `min(celsius // 10, 9)`, clamped to one nibble. It drives the
   colour/intensity ramp on the head.
@@ -64,9 +108,15 @@ Byte 1 = `0xFD`. Since a real hundreds digit is only ever 0 or 1, values ≥ 2 i
 that position act as out-of-band commands. The vendor app sends this once at
 startup, then polls with `Sleep(16)` retries.
 
-Quirk: this frame is sent with length `0x40` (64) while temperature frames use
+~~Quirk: this frame is sent with length `0x40` (64) while temperature frames use
 `0x41` (65). Almost certainly an off-by-one in the vendor code. Sending 65 for
-both works.
+both works.~~
+
+**Retracted.** The `0x40` was correct and the `0x41` was harmless: see
+[Report length](#report-length-corrected). `HidD_SetFeature` truncated the
+oversized temperature buffers to the descriptor's 64 bytes, so both frames were
+64 bytes on the wire. “Sending 65 for both works” had no evidence behind it and
+is wrong on Linux, where nothing truncates.
 
 **Blank the display** (`0x00408f8b`): all-zero payload, i.e. `07 00 00 ...`.
 Emitted when the display-enable setting is off.
@@ -92,11 +142,97 @@ Persisted in the registry via `RegSetValueExW`, not an INI.
 
 ## Linux notes
 
-`HidD_SetFeature` maps to `ioctl(fd, HIDIOCSFEATURE(65), buf)` with
+`HidD_SetFeature` maps to `ioctl(fd, HIDIOCSFEATURE(64), buf)` with
 `buf[0] = 0x07`. There is no need for hidapi or libusb, and no kernel driver
 needs to be unbound — hidraw is sufficient because this is a vendor-defined
 collection, not an input device.
 
 The pump head exposes more than one HID interface. Match on the report
-descriptor containing `06 01 FF` (Usage Page 0xFF01) and `09 01` (Usage 1),
-which is what the vendor app checks via `HidP_GetCaps`.
+descriptor declaring a top-level application collection with Usage Page
+`0xFF01` / Usage `0x01`, which is what the vendor app checks via
+`HidP_GetCaps`.
+
+Do **not** do this by searching the descriptor for the byte substrings
+`06 01 FF` and `09 01`. A report descriptor is a self-delimiting item stream,
+so the *data* bytes of one item can spell the header of another: a four-byte
+Logical Maximum of `0xFF0106FF` contains `06 01 FF` while declaring no vendor
+page, and `09 01` is Usage(1), present in most descriptors. Walk the items.
+`test_montech.py::DescriptorParser::test_substring_heuristic_is_unsound`
+carries a descriptor that defeats the substring test.
+
+### What the two interfaces are
+
+| Interface | Protocol | Node here | Contents |
+|---|---|---|---|
+| 00 | boot keyboard (`bInterfaceProtocol 01`) | `/dev/hidraw4` | 8-byte keyboard input, LED output. No vendor collection. Backs a real keyboard input node — **never write to it, and do not loosen its permissions**. |
+| 01 | report protocol (`bInterfaceProtocol 02`) | `/dev/hidraw5` | Consumer, System Control, three keyboard collections, a vendor `0xFF00` collection, and the `0xFF01` display collection. |
+
+The device's USB strings are `SEMICO` / `USB Gaming Keyboard` — generic OEM
+leftovers from the SEMICO HID controller, not a sign you have the wrong device.
+`hidrawN` numbering is not stable across replug; the shipped udev rule creates
+`/dev/montech-hyperflow` for interface 01.
+
+## Verification status
+
+Confidence for every claim above. Items move out of **Inferred** only when the
+pump head itself has been observed; see `EXPERIMENTS.md` for the experiment
+that settles each one.
+
+### Verified — by disassembly *and* by the device's report descriptor
+
+- USB `1a2c:4e85`; vendor collection UsagePage `0xFF01` / Usage `0x01` on
+  interface **01**. Confirmed present on hardware.
+- HID **feature** report, report ID `0x07`.
+- **Report length is 64 bytes** (1 + 63). Settled from `Report Count 0x3F` in
+  the device's descriptor — this *replaces* the earlier 65-byte claim and
+  closes the "65 vs 64" open question without needing hardware.
+  The vendor's `0x40`/`0x41` asymmetry was a Windows truncation artefact, not
+  a protocol fact.
+
+### Verified — by disassembly only
+
+- Digits are plain decimal bytes; no BCD, no checksum, no sequence counter.
+- Byte 4 packing `(level << 4) | unit`, with `level = min(celsius // 10, 9)`
+  computed **before** any °F conversion.
+- The displayed value is clamped at 199.
+- The `0xFD` startup command and the all-zero blank frame.
+- 1 Hz cadence (`Sleep(1000)`).
+
+### Inferred — needs the pump head as oracle
+
+| # | Question | Experiment |
+|---|---|---|
+| 1 | Does byte 5 (`0` CPU / `1` GPU) change anything visible on a 7-segment head? | `E1` |
+| 2 | What does `level` actually drive — colour, brightness, nothing? | `E2` |
+| 3 | Is the `0xFD` startup command required, or just an identify ping? | `E3` |
+| 4 | Does the descriptor-*incorrect* 65-byte frame also work, or does the firmware stall it? | `E4` |
+| 5 | Does the head need re-initialising after suspend/resume or a monitor-off cycle? | `E5` |
+| 6 | Does the unit nibble visibly change anything (a °C/°F indicator segment)? | `E-Unit` |
+| 7 | Does the declared Output instance of report 7 work as well as Feature? | `E6` |
+
+### Corrected — claims from the original notes that the hardware contradicts
+
+| Claim | Status |
+|---|---|
+| "65 bytes = 1 + 64 payload" | **Wrong.** 64 = 1 + 63, from the descriptor. |
+| "sending 65 for both works" | **Unevidenced and wrong on Linux.** Windows truncated; Linux does not. |
+| "the vendor's 0x40 startup length is an off-by-one" | **Backwards.** `0x40` was the correct length. |
+| match the descriptor with the substrings `06 01 FF` / `09 01` | **Unsound.** Item data can spell item headers; walk the descriptor. |
+
+### Driver-side deviations from the vendor app
+
+Deliberate, and none of them change bytes on the wire for a normal reading:
+
+- **°F at 0 °C shows `032`, not `000`.** The first Linux draft special-cased
+  `celsius == 0` to display `0`. The vendor does not, and it made a genuine
+  0 °C reading indistinguishable from a dead sensor. Removed.
+- **A failed sensor read never displays `0`.** `0` is a real temperature. The
+  driver holds the last good value, then blanks. The vendor app has no
+  equivalent situation because it reads through its own monitoring DLL.
+- **Millidegrees are rounded, not truncated,** by default (`--rounding`), so
+  the head agrees with `sensors`. The vendor app truncates; pass
+  `--rounding truncate` to match it exactly.
+
+Note for anyone reading a °F experiment result: 93 °C converts to 199 °F, so
+**every value at or above 93 °C shows `199` in °F mode**. That is the vendor's
+own clamp, not a driver bug.
