@@ -201,6 +201,15 @@ Access path also confirmed end-to-end: the `72-` udev rule gives `/dev/hidraw5`
 both `GROUP=plugdev` and a `uaccess` ACL for the seat user, while
 `/dev/hidraw4` — the boot-keyboard interface — stays `root:root 0600`.
 
+**Live tracking confirmed too.** With the daemon on the autodetected sensor
+(`coretemp` / `Package id 0`), a 20-thread `stress` run drove the package from
+41 °C to a 59 °C plateau and back to 43 °C, and the head followed it to the
+degree against `sensors`. Sensor plumbing, the 1 Hz cadence and the daemon's
+steady-state path are all good.
+
+That run only spanned `level` 4 → 5, so it says nothing conclusive about the
+level ramp; E2 still has to sweep it deliberately.
+
 Still open: everything that is not a digit. See the *Inferred* table below.
 
 ### Verified — by disassembly *and* by the device's report descriptor
