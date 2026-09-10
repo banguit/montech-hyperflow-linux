@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Montech HyperFlow tray
+Comment=Show the AIO pump-head temperature in the panel
+Exec=montech-hyperflow-tray
+Icon=montech-hyperflow
+Terminal=false
+X-GNOME-Autostart-enabled=true
+NoDisplay=true

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <g fill="currentColor">
+    <path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 1.4A5.6 5.6 0 1 1 8 13.6 5.6 5.6 0 0 1 8 2.4z"/>
+    <path d="M4.4 5.6h7.2c.33 0 .6.27.6.6v3.6c0 .33-.27.6-.6.6H4.4a.6.6 0 0 1-.6-.6V6.2c0-.33.27-.6.6-.6zm.7 1.3v2.2h5.8V6.9z" opacity=".45"/>
+    <rect x="5.6" y="7.4" width="1.1" height="1.2" rx=".3"/>
+    <rect x="7.45" y="7.4" width="1.1" height="1.2" rx=".3"/>
+    <rect x="9.3" y="7.4" width="1.1" height="1.2" rx=".3"/>
+  </g>
+</svg>

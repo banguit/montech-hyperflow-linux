@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+  <!-- Pump head seen face-on: round body, square digital display. -->
+  <circle cx="24" cy="24" r="21" fill="#2a2e37"/>
+  <circle cx="24" cy="24" r="21" fill="none" stroke="#4d5566" stroke-width="2"/>
+  <rect x="10" y="16" width="28" height="16" rx="2.5" fill="#11141a"/>
+  <!-- seven-segment "42" -->
+  <g fill="#6b7280">
+    <rect x="13.5" y="18"   width="1.8" height="4.6" rx="0.9"/>
+    <rect x="19.1" y="18"   width="1.8" height="4.6" rx="0.9"/>
+    <rect x="13.7" y="22.6" width="7.0" height="1.8" rx="0.9"/>
+    <rect x="19.1" y="24.4" width="1.8" height="4.6" rx="0.9"/>
+    <rect x="25.5" y="18"   width="7.0" height="1.8" rx="0.9"/>
+    <rect x="30.7" y="19.8" width="1.8" height="3.6" rx="0.9"/>
+    <rect x="25.7" y="22.6" width="7.0" height="1.8" rx="0.9"/>
+    <rect x="25.5" y="24.4" width="1.8" height="3.6" rx="0.9"/>
+    <rect x="25.7" y="27.2" width="7.0" height="1.8" rx="0.9"/>
+  </g>
+  <circle cx="35" cy="19.5" r="1.4" fill="#6b7280" opacity="0.55"/>
+</svg>

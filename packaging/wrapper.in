@@ -1,0 +1,14 @@
+#!/bin/sh
+# Generated from packaging/wrapper.in by the montech-hyperflow Makefile.
+# Do not edit; your changes will be overwritten on the next install.
+#
+# The cwd entry is stripped from sys.path before anything is imported. That
+# matters because montech-hyperflow-admin runs under pkexec as root, and an
+# inherited working directory containing a shadowing module would otherwise
+# be a privilege-escalation path. (python -P would do it too, but only on
+# 3.11+, and this has to work on 3.8.)
+exec "@PYTHON@" -c 'import sys
+sys.path[:] = [p for p in sys.path if p not in ("", ".", None)]
+sys.path.insert(0, "@LIBDIR@")
+from montech_hyperflow.@ENTRY@ import main
+sys.exit(main())' "$@"

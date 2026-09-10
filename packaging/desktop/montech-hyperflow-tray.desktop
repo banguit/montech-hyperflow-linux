@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Montech HyperFlow
+GenericName=Pump-head display
+Comment=Show and control the AIO pump-head temperature display
+Exec=montech-hyperflow-tray
+Icon=montech-hyperflow
+Terminal=false
+Categories=System;Monitor;
+Keywords=aio;cooler;pump;temperature;montech;hyperflow;
+StartupNotify=false
+X-GNOME-UsesNotifications=false

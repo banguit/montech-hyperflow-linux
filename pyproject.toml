@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "montech-hyperflow"
+dynamic = ["version"]
+description = "Linux driver for the Montech HyperFlow Digital AIO pump-head display"
+readme = "README.md"
+requires-python = ">=3.8"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+keywords = ["hidraw", "aio", "cooler", "hwmon", "montech", "hyperflow", "tcomas"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: End Users/Desktop",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Topic :: System :: Hardware",
+  "Topic :: System :: Monitoring",
+]
+dependencies = []          # the daemon is standard library only, on purpose
+
+[project.optional-dependencies]
+tray = ["PyGObject>=3.42"]   # plus GTK 3 and AyatanaAppIndicator3 typelibs,
+                             # which pip cannot install; use your distro's
+                             # gir1.2-ayatanaappindicator3-0.1 package
+
+[project.scripts]
+montech-hyperflow = "montech_hyperflow.cli:main"
+montech-hyperflow-admin = "montech_hyperflow.admin:main"
+
+[project.gui-scripts]
+montech-hyperflow-tray = "montech_hyperflow.tray.app:main"
+
+[project.urls]
+Homepage = "https://github.com/OWNER/montech-hyperflow"
+Protocol = "https://github.com/OWNER/montech-hyperflow/blob/main/docs/PROTOCOL.md"
+Issues = "https://github.com/OWNER/montech-hyperflow/issues"
+
+[tool.setuptools.dynamic]
+version = {attr = "montech_hyperflow.__version__"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
