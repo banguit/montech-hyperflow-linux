@@ -111,6 +111,7 @@ class Loop:
                        else displayed_value(celsius, self.unit)),
             unit="F" if self.unit == UNIT_F else "C",
             source="gpu" if self.source else "cpu",
+            gpu_index=getattr(self.sensor, "index", None),
             sensor=self.sensor.description,
             device=(self.display.path if self.display is not None else None),
             frame_len=self.frame_len,

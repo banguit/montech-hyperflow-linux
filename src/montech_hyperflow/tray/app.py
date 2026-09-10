@@ -120,9 +120,12 @@ class TrayApp:
 
         # Rebuild the menu only when something a user can see has changed,
         # so an open menu is not yanked out from under the pointer.
+        gpus, gpu_error = service.gpu_choices()
         signature = (state, bool(record), record and record.get("stale"),
                      service.selected_unit(record, settings),
-                     service.selected_source(record, settings))
+                     service.selected_source(record, settings),
+                     service.selected_gpu_index(record, settings),
+                     tuple(gpus), gpu_error)
         if signature != self.last_signature:
             self.last_signature = signature
             self.build_menu(record, state, settings)
@@ -189,15 +192,31 @@ class TrayApp:
         self.menu.append(Gtk.SeparatorMenuItem())
 
         source = service.selected_source(record, settings)
-        group = None
-        for code, text in (("cpu", "Show CPU"), ("gpu", "Show GPU")):
-            item = Gtk.RadioMenuItem(label=text)
-            if group is None:
-                group = item
-            else:
-                item.join_group(group)
-            item.set_active(source == code)
-            item.connect("toggled", self.on_source, code)
+        gpu_index = service.selected_gpu_index(record, settings)
+        gpus, gpu_error = service.gpu_choices()
+
+        group = Gtk.RadioMenuItem(label="Show CPU")
+        group.set_active(source == "cpu")
+        group.connect("toggled", self.on_source, "cpu", None)
+        self.menu.append(group)
+
+        # One entry per GPU that actually works, named. "Show GPU" alone is
+        # ambiguous on a two-card machine, and offering it at all when no GPU
+        # source is reachable just puts the service into 78/CONFIG on click.
+        for index, name in gpus:
+            label = "Show %s" % name if index is None else \
+                    "Show GPU %d - %s" % (index, name)
+            item = Gtk.RadioMenuItem(label=label)
+            item.join_group(group)
+            item.set_active(source == "gpu"
+                            and (index is None or index == gpu_index))
+            item.connect("toggled", self.on_source, "gpu", index)
+            self.menu.append(item)
+
+        if not gpus:
+            item = Gtk.MenuItem(label="GPU unavailable - %s"
+                                      % (gpu_error or "no GPU found"))
+            item.set_sensitive(False)
             self.menu.append(item)
 
         self.menu.append(Gtk.SeparatorMenuItem())
@@ -254,10 +273,13 @@ class TrayApp:
         ok, out = service.apply_settings(fahrenheit=(code == "F"))
         self._report(ok, out)
 
-    def on_source(self, item, code):
+    def on_source(self, item, code, gpu_index=None):
         if self._building or not item.get_active():
             return
-        ok, out = service.apply_settings(source=code)
+        settings = {"source": code}
+        if code == "gpu" and gpu_index is not None:
+            settings["gpu_index"] = gpu_index
+        ok, out = service.apply_settings(**settings)
         self._report(ok, out)
 
     def on_toggle_service(self, _item, running):

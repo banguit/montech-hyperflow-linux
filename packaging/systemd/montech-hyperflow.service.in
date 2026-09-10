@@ -95,11 +95,17 @@ SystemCallErrorNumber=EPERM
 CapabilityBoundingSet=
 DevicePolicy=closed
 DeviceAllow=char-hidraw rw
-# For --source gpu on an NVIDIA box, also uncomment these (nvidia-smi talks to
-# the driver through them; they are mode 0666 so no group is needed):
-#DeviceAllow=/dev/nvidiactl rw
-#DeviceAllow=/dev/nvidia0 rw
-#DeviceAllow=/dev/nvidia1 rw
+# --source gpu on an NVIDIA box needs these: nvidia-smi talks to the driver
+# through /dev/nvidia*, and with DevicePolicy=closed and only char-hidraw
+# allowed, NVML fails with "Failed to initialize NVML: Unknown Error" and the
+# daemon exits 78/CONFIG. They are device-group names from /proc/devices
+# rather than individual nodes, so they cover any number of cards without the
+# unit having to know how many are fitted. Granting them costs nothing: the
+# nodes are mode 0666, so DevicePolicy=closed was the only thing in the way.
+# Harmless on a machine with no NVIDIA driver, where the names do not resolve.
+DeviceAllow=char-nvidia rw
+DeviceAllow=char-nvidia-uvm rw
+# AMD and Intel GPUs report through hwmon in sysfs and need no device access.
 
 [Install]
 WantedBy=multi-user.target

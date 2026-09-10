@@ -3,6 +3,7 @@
 import glob
 import os
 import re
+import shutil
 import subprocess
 
 from .device import numeric_sort_key
@@ -69,21 +70,57 @@ def autodetect_gpu_sensor():
     return None
 
 
-def nvidia_gpus():
-    """[(index, name), ...] as nvidia-smi sees them, or [] if unavailable."""
+def nvidia_probe():
+    """([(index, name), ...], error_or_None).
+
+    The error matters. "nvidia-smi is not installed" and "nvidia-smi is
+    installed but could not reach the driver" need completely different
+    fixes, and conflating them sends people looking for a missing package
+    that is already there. The second case is what a sandboxed systemd
+    service hits when DevicePolicy= blocks /dev/nvidia*.
+    """
+    if shutil.which("nvidia-smi") is None:
+        return [], "nvidia-smi is not installed"
     try:
-        out = subprocess.check_output(
+        proc = subprocess.run(
             ["nvidia-smi", "--query-gpu=index,name",
              "--format=csv,noheader,nounits"],
-            stderr=subprocess.DEVNULL, timeout=5)
-    except Exception:
-        return []
+            capture_output=True, timeout=5)
+    except subprocess.TimeoutExpired:
+        return [], "nvidia-smi timed out"
+    except OSError as exc:
+        return [], "nvidia-smi could not be run (%s)" % exc
+    if proc.returncode != 0:
+        detail = (proc.stderr or b"").decode(errors="replace").strip()
+        detail = detail.splitlines()[0] if detail else "no output"
+        return [], ("nvidia-smi failed: %s. If this is a systemd service, "
+                    "the sandbox may be blocking /dev/nvidia* -- see "
+                    "DeviceAllow= in montech-hyperflow.service" % detail)
     gpus = []
-    for line in out.decode(errors="replace").splitlines():
+    for line in proc.stdout.decode(errors="replace").splitlines():
         parts = line.split(",", 1)
         if len(parts) == 2 and parts[0].strip().isdigit():
             gpus.append((int(parts[0].strip()), parts[1].strip()))
-    return gpus
+    if not gpus:
+        return [], "nvidia-smi reported no GPUs"
+    return gpus, None
+
+
+def nvidia_gpus():
+    """[(index, name), ...] as nvidia-smi sees them, or []."""
+    return nvidia_probe()[0]
+
+
+def gpu_sources():
+    """([(index_or_None, label), ...], error_or_None) for every usable GPU.
+
+    A hwmon GPU (amdgpu/radeon/nouveau) has no index; NVIDIA cards do.
+    """
+    hwmon = autodetect_gpu_sensor()
+    if hwmon:
+        return [(None, label_of(hwmon) or hwmon)], None
+    gpus, error = nvidia_probe()
+    return [(i, n) for i, n in gpus], error
 
 
 class Sensor:

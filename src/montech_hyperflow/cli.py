@@ -13,7 +13,7 @@ from .frame import (FRAME_LEN, SRC_CPU, SRC_GPU, UNIT_C, UNIT_F,
                     build_blank_frame, build_init_frame, format_frame)
 from .sensors import (FixedSensor, HwmonSensor, NvidiaSensor,
                       autodetect_cpu_sensor, autodetect_gpu_sensor,
-                      label_of, nvidia_gpus, read_hwmon)
+                      label_of, nvidia_gpus, nvidia_probe, read_hwmon)
 from .status import StatusWriter
 
 EX_OK = 0
@@ -176,10 +176,11 @@ def pick_sensor(args):
         if path:
             return HwmonSensor(path, redetect=autodetect_gpu_sensor,
                                log=log), None
-        gpus = nvidia_gpus()
+        gpus, why_not = nvidia_probe()
         if not gpus:
-            return None, ("no GPU temperature source found "
-                          "(no amdgpu/radeon/nouveau hwmon, no nvidia-smi)")
+            return None, ("no GPU temperature source found: no "
+                          "amdgpu/radeon/nouveau hwmon sensor, and %s"
+                          % (why_not or "no NVIDIA GPU"))
         if args.gpu_index not in [i for i, _ in gpus]:
             return None, ("--gpu-index %d not present; nvidia-smi reports %s"
                           % (args.gpu_index,

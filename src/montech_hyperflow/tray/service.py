@@ -10,6 +10,7 @@ import shutil
 import subprocess
 
 from .. import config as configmod
+from .. import sensors as sensorsmod
 from .. import status as statusmod
 
 UNIT = "montech-hyperflow.service"
@@ -126,3 +127,22 @@ def selected_source(record, settings):
     if record and not record.get("stale") and record.get("source"):
         return record["source"]
     return settings.get("source", "cpu")
+
+
+def gpu_choices():
+    """([(index_or_None, label), ...], error_or_None).
+
+    Empty with an error means the menu should show a disabled entry saying
+    why, rather than an option that puts the service into 78/CONFIG when
+    clicked. That is not hypothetical: a sandboxed unit that blocks
+    /dev/nvidia* has a working nvidia-smi that cannot reach the driver.
+    """
+    return sensorsmod.gpu_sources()
+
+
+def selected_gpu_index(record, settings):
+    if record and not record.get("stale") and record.get("source") == "gpu":
+        idx = record.get("gpu_index")
+        if idx is not None:
+            return idx
+    return settings.get("gpu_index", 0)

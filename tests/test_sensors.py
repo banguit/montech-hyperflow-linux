@@ -118,3 +118,81 @@ class SensorFailurePolicy(unittest.TestCase):
         celsius, reason = self._loop(_Flaky([0])).value()
         self.assertEqual(celsius, 0)
         self.assertIsNone(reason)
+
+
+class NvidiaProbeReporting(unittest.TestCase):
+    """The GPU probe must say WHY it failed.
+
+    Regression: "no nvidia-smi" was reported on a machine where nvidia-smi is
+    installed and working for the desktop user, but the systemd sandbox was
+    blocking /dev/nvidia*. That message sends people to install a package
+    they already have.
+    """
+
+    def test_missing_binary_is_distinguished(self):
+        import shutil as _sh
+        real = _sh.which
+        S_mod = __import__("montech_hyperflow.sensors", fromlist=["x"])
+        S_mod.shutil.which = lambda n: None
+        try:
+            gpus, err = S_mod.nvidia_probe()
+        finally:
+            S_mod.shutil.which = real
+        self.assertEqual(gpus, [])
+        self.assertIn("not installed", err)
+
+    def test_driver_failure_mentions_the_sandbox(self):
+        S_mod = __import__("montech_hyperflow.sensors", fromlist=["x"])
+        real_which, real_run = S_mod.shutil.which, S_mod.subprocess.run
+
+        class _Proc:
+            returncode = 255
+            stdout = b""
+            stderr = b"Failed to initialize NVML: Unknown Error\n"
+
+        S_mod.shutil.which = lambda n: "/usr/bin/nvidia-smi"
+        S_mod.subprocess.run = lambda *a, **k: _Proc()
+        try:
+            gpus, err = S_mod.nvidia_probe()
+        finally:
+            S_mod.shutil.which, S_mod.subprocess.run = real_which, real_run
+        self.assertEqual(gpus, [])
+        self.assertIn("NVML", err)
+        self.assertIn("DeviceAllow", err)      # points at the actual fix
+
+    def test_success_returns_no_error(self):
+        S_mod = __import__("montech_hyperflow.sensors", fromlist=["x"])
+        real_which, real_run = S_mod.shutil.which, S_mod.subprocess.run
+
+        class _Proc:
+            returncode = 0
+            stdout = b"0, Card A\n1, Card B\n"
+            stderr = b""
+
+        S_mod.shutil.which = lambda n: "/usr/bin/nvidia-smi"
+        S_mod.subprocess.run = lambda *a, **k: _Proc()
+        try:
+            gpus, err = S_mod.nvidia_probe()
+        finally:
+            S_mod.shutil.which, S_mod.subprocess.run = real_which, real_run
+        self.assertEqual(gpus, [(0, "Card A"), (1, "Card B")])
+        self.assertIsNone(err)
+
+
+class GpuMenuSelection(unittest.TestCase):
+
+    def setUp(self):
+        from montech_hyperflow.tray import service
+        self.service = service
+
+    def test_live_gpu_index_wins(self):
+        record = {"source": "gpu", "gpu_index": 1, "stale": False}
+        self.assertEqual(self.service.selected_gpu_index(record, {}), 1)
+
+    def test_config_index_used_when_stale(self):
+        stale = {"source": "gpu", "gpu_index": 0, "stale": True}
+        self.assertEqual(
+            self.service.selected_gpu_index(stale, {"gpu_index": 1}), 1)
+
+    def test_defaults_to_zero(self):
+        self.assertEqual(self.service.selected_gpu_index(None, {}), 0)
