@@ -1,0 +1,3 @@
+# Montech HyperFlow Digital 240/360 pump-head display (TCOMAS DH-C100 platform)
+# Grants the "plugdev" group write access to the vendor HID collection.
+KERNEL=="hidraw*", ATTRS{idVendor}=="1a2c", ATTRS{idProduct}=="4e85", MODE="0660", GROUP="plugdev", TAG+="uaccess"

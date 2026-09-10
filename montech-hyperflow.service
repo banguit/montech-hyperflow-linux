@@ -1,0 +1,20 @@
+[Unit]
+Description=Montech HyperFlow Digital pump-head display
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/montech-hyperflow.py --source cpu
+ExecStopPost=-/usr/local/bin/montech-hyperflow.py --blank-on-exit --interval 0.1
+Restart=always
+RestartSec=5
+# Drop privileges once the udev rule is in place:
+#User=youruser
+#Group=plugdev
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
