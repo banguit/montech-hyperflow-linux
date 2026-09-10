@@ -82,8 +82,11 @@ Report ID `0x07`, then:
 | 5 | source: `0` = CPU, `1` = GPU |
 | 6–63 | zero |
 
-- `level` = `min(celsius // 10, 9)`, clamped to one nibble. It drives the
-  colour/intensity ramp on the head.
+- `level` = `min(celsius // 10, 9)`, clamped to one nibble. It almost
+  certainly drives the **10-segment vertical bar graph** on the left of the
+  display: ten possible values, ten segments. (An earlier version of this
+  note called it a "colour/intensity ramp"; the vendor manual's render of the
+  head shows a discrete bar instead. Pending E2.)
 - `unit`: `0` = °C, `1` = °F.
 - Digits are the *displayed* value, so in °F mode they are the Fahrenheit
   number — but **`level` is still computed from Celsius**. That asymmetry is in
@@ -211,6 +214,55 @@ That run only spanned `level` 4 → 5, so it says nothing conclusive about the
 level ramp; E2 still has to sweep it deliberately.
 
 Still open: everything that is not a digit. See the *Inferred* table below.
+
+### Evidence from the vendor manual
+
+The official *HyperFlow Digital* manual (montechpc.com, PDF) contains a
+high-resolution render of the pump head and a screenshot of the Windows app.
+Neither is an observation of *our* frames on *this* head, so nothing here is
+promoted to Confirmed — but it is strong, independent corroboration and it
+makes the Phase 2 experiments much cheaper to interpret.
+
+**What the display actually contains**, reading the cover render:
+
+```
+        CPU            <- source label, blue. Byte 5 almost certainly drives this.
+  ▉                    <- 10-segment vertical bar, bottom-to-top,
+  ▉                       fixed colour per segment: amber at the bottom
+  ▉  ██   ██              through orange to red at the top.
+  ▉  ██   ██              Byte 4's high nibble almost certainly drives this.
+  ▉  ██   ██   °C       <- unit indicator, green. Byte 4's low nibble.
+     ^^^^^^^
+     white 7-segment digits
+```
+
+Three consequences:
+
+1. **`level` is a discrete 10-segment bar graph, not a colour ramp.** This
+   note previously said it "drives the colour/intensity ramp on the head",
+   which appears to be wrong about the *mechanism*. `level = min(c // 10, 9)`
+   yields exactly ten values, 0–9, and the render shows a bar of roughly ten
+   segments. That is a very tight fit. The segment *colours* are fixed by
+   position; `level` presumably sets how many are lit.
+2. **Byte 5 has a visible effect**: the head has a literal `CPU` text label,
+   so `1` should read `GPU`. This is the answer E1 is looking for.
+3. **The unit nibble has a visible effect**: there is a `°C` indicator, so
+   °F mode should change it.
+
+**What the vendor app exposes** (manual, Software Installation page): exactly
+three controls — an `ON | OFF` switch, a `CPU | GPU` toggle and a `°C | °F`
+toggle. Nothing else. That matches the three settings recovered from the
+binary (`[this+0x34c]`, `[this+0x3b0]`, `[this+0x3b4]`) with nothing left
+over, and it means **`level` is not user-configurable** — consistent with it
+being derived from temperature rather than chosen.
+
+The RGB ring around the head is **not ours**: the specifications page lists
+the pump LED as a separate ARGB 5V-3pin header. It is driven by the
+motherboard, not by this protocol. Do not expect any frame to change it.
+
+The manual also documents the model line as "HyperFlow Digital" in 240 and
+360 sizes, black and white, which is the population this protocol should
+cover.
 
 ### Verified — by disassembly *and* by the device's report descriptor
 

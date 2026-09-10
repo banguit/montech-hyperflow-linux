@@ -111,8 +111,9 @@ montech-hyperflow --device /dev/montech-hyperflow --test-value 50 --fahrenheit -
 
 Run the first, look, then the second, look.
 
-> **STOP — for each of the two, what did the head show, and did anything other
-> than the digits change (a °C/°F indicator, a decimal point, colour)?**
+> **STOP — for each of the two, what did the head show, and did the unit
+> indicator change?** The manual's render shows a small green `°C` at the
+> bottom right of the display, so the expected change is `°C` → `°F`.
 
 | Answer | Conclusion |
 |---|---|
@@ -125,6 +126,14 @@ deliberate vendor asymmetry, level from Celsius. If the head's colour changes
 between these two frames, the asymmetry is observable and worth recording.
 
 ---
+
+> **Prior from the vendor manual (read `docs/PROTOCOL.md` first).** The
+> official manual's render of the head shows a `CPU` text label, a
+> 10-segment vertical bar, white digits and a `°C` indicator. So E1, E2 and
+> E-Unit all have a strongly expected answer now. That does not make them
+> redundant — a render is not this head running our frames — but it does
+> change what you are looking for, and it means a *negative* result is the
+> interesting outcome rather than the boring one.
 
 ## E1 — does byte 5 do anything?
 
@@ -141,8 +150,9 @@ montech-hyperflow --device /dev/montech-hyperflow --test-value 55 --source gpu -
 
 The two frames differ in exactly one byte.
 
-> **STOP — between those two, did *anything* on the head change? An icon, a
-> colour, a segment, the brightness?**
+> **STOP — between those two, did *anything* on the head change?**
+> Look specifically at the **text label above the digits**: the manual's
+> render shows `CPU` there, so the expected change is `CPU` → `GPU`.
 
 | Answer | Conclusion |
 |---|---|
@@ -167,6 +177,10 @@ montech-hyperflow --device /dev/montech-hyperflow --test-value 45 --test-level 9
 
 > **STOP — the digits were `045` both times. Did anything else differ between
 > level 0 and level 9?**
+> Look at the **vertical bar on the left of the display**. The manual's render
+> shows about ten segments running amber → orange → red bottom to top, and
+> `level` has exactly ten values, so the expected difference is how many
+> segments are lit: none (or one) at level 0, all of them at level 9.
 
 If nothing differs at the extremes, the sweep is pointless — skip to `E3` and
 record item 2 as "no visible effect".
