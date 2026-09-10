@@ -9,6 +9,16 @@ with a **STOP** and one question.
 1. **One variable per step.** Digits are held constant wherever the variable
    under test is not the digits, so any change is attributable.
 2. **Never chain two device-affecting steps and then ask once.**
+2b. **Stop the daemon first.** If `montech-hyperflow.service` is running it
+   rewrites the display every second, so a `--once` test frame is gone before
+   you can look at it. Every experiment below assumes:
+   ```bash
+   sudo systemctl stop montech-hyperflow
+   ```
+   and a `sudo systemctl start montech-hyperflow` when you are done. The
+   driver refuses a test frame while another writer is live, so you cannot
+   get this wrong silently -- but it is easier to stop it up front than to
+   read the error.
 3. **Pin the device.** `hidrawN` numbering moves across replug and resume. Use
    the stable symlink the udev rule creates:
    ```bash

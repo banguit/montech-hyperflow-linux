@@ -95,6 +95,9 @@ def build_parser():
     g.add_argument("--any-interface", action="store_true",
                    help="do not require the 0xFF01 vendor collection "
                         "(unsafe: may select the keyboard interface)")
+    g.add_argument("--force", action="store_true",
+                   help="run a test frame even though another instance is "
+                        "already driving the display")
     return ap
 
 
@@ -238,6 +241,27 @@ def main(argv=None):
     unit = UNIT_F if args.fahrenheit else UNIT_C
     source = SRC_GPU if args.source == "gpu" else SRC_CPU
 
+    if not args.dry_run and (args.test_value is not None
+                             or args.test_level is not None):
+        conflict = _other_writer()
+        if conflict and not args.force:
+            log("error: %s is already driving the display, and would "
+                "overwrite this test frame within one interval." % conflict)
+            log("")
+            log("A held test value is the whole point of --test-value: an")
+            log("experiment you cannot see is not an experiment. Stop the")
+            log("other writer first:")
+            log("")
+            log("    sudo systemctl stop montech-hyperflow")
+            log("    montech-hyperflow %s" % " ".join(sys.argv[1:]))
+            log("    sudo systemctl start montech-hyperflow   # when done")
+            log("")
+            log("Pass --force to send it anyway.")
+            return EX_CONFIG
+        if conflict:
+            log("warning: %s is also driving the display; this frame will "
+                "be overwritten shortly (--force)" % conflict)
+
     if args.blank:
         return _do_blank(args)
 
@@ -290,6 +314,22 @@ def main(argv=None):
         print("blank -> " + format_frame(build_blank_frame(frame_len)))
     status.clear()
     return rc
+
+
+def _other_writer():
+    """Describe a live daemon already driving the display, or None.
+
+    Deliberately reads the published status file rather than asking systemd:
+    it costs no coupling, and it catches a foreground instance in another
+    terminal just as well as the system service.
+    """
+    from . import status as statusmod
+    record = statusmod.read()
+    if not record or record.get("stale"):
+        return None
+    who = "montech-hyperflow.service" if record.get("device") else \
+          "another montech-hyperflow instance"
+    return "%s (last wrote %.1fs ago)" % (who, record.get("age", 0.0))
 
 
 def _do_blank(args):
