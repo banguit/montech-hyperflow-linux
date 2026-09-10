@@ -47,8 +47,16 @@ from .. import config as configmod                              # noqa: E402
 from . import service                                           # noqa: E402
 
 APP_ID = "montech-hyperflow"
-ICON_ACTIVE = "montech-hyperflow"
-ICON_IDLE = "montech-hyperflow-idle"
+
+# Panel icons are the SYMBOLIC variants, in preference order. A symbolic icon
+# is recoloured by the shell to match the panel foreground, which is what
+# makes it correct on both light and dark themes and crisp at 16px. The
+# full-colour icon is for the About dialog and the app grid, where it sits on
+# a known background at a size where detail reads.
+ICON_ACTIVE = ("montech-hyperflow-symbolic", "montech-hyperflow")
+ICON_IDLE = ("montech-hyperflow-idle-symbolic", "montech-hyperflow-idle",
+             "montech-hyperflow-symbolic", "montech-hyperflow")
+ICON_APP = "montech-hyperflow"
 REFRESH_MS = 1000
 
 DOC_DIRS = ("/usr/share/doc/montech-hyperflow",
@@ -56,7 +64,11 @@ DOC_DIRS = ("/usr/share/doc/montech-hyperflow",
 
 
 def _thermometer_fallback():
-    """Icon name to use when our themed icon is not installed."""
+    """Stock icon to use when ours is not installed.
+
+    Symbolic names only: an unthemed full-colour stock icon in a panel looks
+    worse than a generic symbolic one.
+    """
     theme = Gtk.IconTheme.get_default()
     for name in ("temperature-symbolic", "sensors-temperature-symbolic",
                  "utilities-system-monitor-symbolic", "computer-symbolic"):
@@ -68,10 +80,17 @@ def _thermometer_fallback():
 class TrayApp:
     def __init__(self):
         theme = Gtk.IconTheme.get_default()
-        self.icon_active = (ICON_ACTIVE if theme.has_icon(ICON_ACTIVE)
-                            else _thermometer_fallback())
-        self.icon_idle = (ICON_IDLE if theme.has_icon(ICON_IDLE)
-                          else self.icon_active)
+
+        def pick(names):
+            for name in names:
+                if theme.has_icon(name):
+                    return name
+            return _thermometer_fallback()
+
+        self.icon_active = pick(ICON_ACTIVE)
+        self.icon_idle = pick(ICON_IDLE)
+        self.icon_app = (ICON_APP if theme.has_icon(ICON_APP)
+                         else self.icon_active)
 
         self.indicator = AppIndicator.Indicator.new(
             APP_ID, self.icon_active,
@@ -314,7 +333,7 @@ class TrayApp:
             "with or endorsed by Montech.\nHardware: USB 1a2c:4e85, OEM "
             "platform TCOMAS DH-C100.")
         dialog.set_license_type(Gtk.License.GPL_3_0)
-        dialog.set_logo_icon_name(self.icon_active)
+        dialog.set_logo_icon_name(self.icon_app)
         dialog.connect("response", lambda d, _r: d.destroy())
         dialog.show()
 

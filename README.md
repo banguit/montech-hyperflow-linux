@@ -105,6 +105,37 @@ status file.
 > extension. On Ubuntu it is installed and enabled by default. On stock GNOME,
 > install `gnome-shell-extension-appindicator` and enable it.
 
+### Light and dark themes
+
+The panel uses the **symbolic** icons, which the shell recolours to match the
+panel foreground, so they are correct on light and dark themes automatically
+and stay crisp at 16px. The full-colour icon is used only where it sits on a
+known background at a readable size: the About dialog and the app grid.
+
+### Using your own icon
+
+The icon theme searches `$XDG_DATA_HOME` before the system directories, so
+dropping a file in `~/.local/share/icons/` overrides the shipped one for your
+user, with no configuration and no rebuild:
+
+```bash
+mkdir -p ~/.local/share/icons/hicolor/symbolic/apps
+cp my-icon.svg ~/.local/share/icons/hicolor/symbolic/apps/montech-hyperflow-symbolic.svg
+gtk-update-icon-cache -f -t ~/.local/share/icons/hicolor
+```
+
+The names the tray looks for, in order:
+
+| Purpose | Names tried |
+|---|---|
+| panel, running | `montech-hyperflow-symbolic`, `montech-hyperflow` |
+| panel, stopped | `montech-hyperflow-idle-symbolic`, `montech-hyperflow-idle`, then the running names |
+| About dialog | `montech-hyperflow` |
+
+A file you place there is yours and stays on your machine. Note that this
+project cannot ship a manufacturer's logo as its icon — see
+[`NOTICE.md`](NOTICE.md) — but nothing stops you using one locally.
+
 ## Usage
 
 ```
