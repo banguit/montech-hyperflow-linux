@@ -4,8 +4,9 @@
 usr/bin/montech-hyperflow-tray
 usr/lib/montech-hyperflow/montech_hyperflow/tray/*.py
 usr/share/applications/montech-hyperflow-tray.desktop
+usr/share/icons/hicolor/16x16/apps/montech-hyperflow*.svg
+usr/share/icons/hicolor/24x24/apps/montech-hyperflow*.svg
 usr/share/icons/hicolor/scalable/apps/montech-hyperflow*.svg
-usr/share/icons/hicolor/symbolic/apps/montech-hyperflow*.svg
 # The pkexec helper travels with the polkit action that authorises it. The
 # helper exists only to be invoked by the indicator, and an action file whose
 # annotated exec.path does not exist makes polkit log errors, so shipping the

@@ -171,7 +171,7 @@ uninstall:
 	rm -f  $(DESTDIR)$(ICONDIR)/16x16/apps/$(NAME)*.svg
 	rm -f  $(DESTDIR)$(ICONDIR)/24x24/apps/$(NAME)*.svg
 	rm -f  $(DESTDIR)$(ICONDIR)/scalable/apps/$(NAME)*.svg
-	rm -f  $(DESTDIR)$(ICONDIR)/symbolic/apps/$(NAME)*.svg
+	rm -f  $(DESTDIR)$(ICONDIR)/symbolic/apps/$(NAME)*.svg  # pre-1.0 layout
 	rm -rf $(DESTDIR)$(DOCDIR)
 	@if [ -z "$(DESTDIR)" ]; then systemctl daemon-reload; \
 	    udevadm control --reload 2>/dev/null || true; fi

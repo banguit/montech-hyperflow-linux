@@ -250,10 +250,13 @@ modules:
       - |
         set -eu
         d=/app/share/icons/hicolor
-        cp "$d/scalable/apps/montech-hyperflow.svg" \
-           "$d/scalable/apps/org.montech.HyperFlow.svg"
-        cp "$d/symbolic/apps/montech-hyperflow-symbolic.svg" \
-           "$d/symbolic/apps/org.montech.HyperFlow-symbolic.svg"
+        # There is no symbolic variant: the icons are full-colour in a
+        # dark-panel and a light-panel trim, at three sizes. Alias every
+        # size so the component ID resolves whatever size is requested.
+        for sz in 16x16 24x24 scalable; do
+          cp "$d/$sz/apps/montech-hyperflow.svg" \
+                "$d/$sz/apps/org.montech.HyperFlow.svg"
+        done
 
       # AppStream requires a desktop-application's launchable to be named
       # after the component ID inside a Flatpak, while the native packages
