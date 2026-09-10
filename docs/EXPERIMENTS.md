@@ -105,6 +105,15 @@ and there is no blank command — which changes the whole shutdown story.
 
 ---
 
+## ~~E-Unit — the unit nibble~~ SETTLED
+
+**Answered 2026-09-10.** 50 °C showed `50` + `°C` with 5 bar segments;
+`--fahrenheit` showed `122` + `°F` with **still 5 segments**. So the nibble
+selects the unit mark, and `level` provably stays on the Celsius value — the
+vendor asymmetry is confirmed firmware behaviour, not a misreading.
+
+<details><summary>original procedure, kept for reference</summary>
+
 ## E-Unit — the unit nibble (cheap, do it early)
 
 **Variable:** byte 4 low nibble, `0` → `1`. Digits change too (that is
@@ -152,6 +161,8 @@ head rendered `GPU` in blue above the digits, where the manual's render of a
 default head shows `CPU`. Byte 5 selects a text label. Nothing further to run.
 
 <details><summary>original procedure, kept for reference</summary>
+
+</details>
 
 ## E1 — does byte 5 do anything?
 

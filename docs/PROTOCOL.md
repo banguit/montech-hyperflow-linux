@@ -236,10 +236,30 @@ This was answered incidentally rather than by running E1 deliberately, which
 is the stronger result — the label tracked a setting changed through the tray,
 end to end.
 
-#### The unit indicator
+#### The unit nibble drives a °C/°F indicator (E-Unit, settled 2026-09-10)
 
-Both photographs show a green `°C` at the bottom right, consistent with the
-unit nibble being `0`. Not yet contrasted against `°F`, so E-Unit stands.
+Two frames differing **only** in byte 4's low nibble, photographed:
+
+| Frame | byte 4 | Digits | Unit mark | Bar |
+|---|---|---|---|---|
+| `07 00 05 00 50 00` | `level 5`, `unit 0` | `50` | `°C` | **5 segments** |
+| `07 01 02 02 51 00` | `level 5`, `unit 1` | `122` | `°F` | **5 segments** |
+
+The head renders the unit mark itself; the nibble selects it.
+
+#### The Fahrenheit/level asymmetry is real (confirmed 2026-09-10)
+
+This is the more valuable half of that experiment. In the °F frame the head
+displays **122** while the bar stays at **5 segments** — because `level` is
+computed from the *Celsius* value (50 → 5) **before** the conversion, exactly
+as the disassembly said (`var_50h`/`var_54h` at `0x00408dfe`–`0x00408e3b`,
+ahead of the °F conversion at `0x00408e4a`).
+
+Had `level` been derived from the displayed number, 122 would have clamped it
+to 9 and lit the whole bar. It did not. The quirk is genuine firmware
+behaviour, not a misreading of the binary, and
+`test_frame.py::FahrenheitQuirk` now guards observed behaviour rather than an
+inference. **Do not "fix" it.**
 
 **Live tracking confirmed too.** With the daemon on the autodetected sensor
 (`coretemp` / `Package id 0`), a 20-thread `stress` run drove the package from
@@ -332,7 +352,7 @@ cover.
 | 3 | Is the `0xFD` startup command *required*? (Known: it does not blank or disturb the display when sent.) | `E3` |
 | 4 | Does the descriptor-*incorrect* 65-byte frame also work, or does the firmware stall it? (64 is now known to work.) | `E4` |
 | 5 | Does the head need re-initialising after suspend/resume or a monitor-off cycle? | `E5` |
-| 6 | Does the unit nibble visibly change anything (a °C/°F indicator segment)? | `E-Unit` |
+| ~~6~~ | ~~Does the unit nibble visibly change anything?~~ **Settled: it selects a `°C`/`°F` mark, and `level` provably stays on the Celsius value.** | ~~`E-Unit`~~ |
 | 7 | Does the declared Output instance of report 7 work as well as Feature? | `E6` |
 
 ### Corrected — claims from the original notes that the hardware contradicts

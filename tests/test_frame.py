@@ -80,8 +80,20 @@ class FahrenheitQuirk(unittest.TestCase):
     """The vendor computes `level` from Celsius BEFORE converting to degF.
 
     docs/PROTOCOL.md 0x00408dfe-0x00408e3b (level) vs 0x00408e4a (conversion).
-    Deliberate. Do not "fix" without hardware evidence.
+
+    CONFIRMED ON HARDWARE 2026-09-10: at 50 C the head showed "50 degC" with 5
+    bar segments; with --fahrenheit it showed "122 degF" with STILL 5 segments.
+    Had level come from the displayed number, 122 would have clamped it to 9
+    and lit the whole bar. These assertions guard observed behaviour, not an
+    inference. Do not "fix" them.
     """
+
+    def test_the_photographed_frames(self):
+        # the exact two frames that were photographed on the head
+        self.assertEqual(F.build_frame(50, unit=F.UNIT_C)[:6],
+                         bytes([0x07, 0x00, 0x05, 0x00, 0x50, 0x00]))
+        self.assertEqual(F.build_frame(50, unit=F.UNIT_F)[:6],
+                         bytes([0x07, 0x01, 0x02, 0x02, 0x51, 0x00]))
 
     def test_digits_are_fahrenheit_but_level_is_celsius(self):
         f = F.build_frame(50, unit=F.UNIT_F)
