@@ -14,7 +14,7 @@ body:
         head changed" is a result, not a non-result — please file it.
 
         Read the ground rules in
-        [`docs/EXPERIMENTS.md`](https://github.com/OWNER/montech-hyperflow-linux/blob/main/docs/EXPERIMENTS.md)
+        [`docs/EXPERIMENTS.md`](https://github.com/banguit/montech-hyperflow-linux/blob/main/docs/EXPERIMENTS.md)
         first, in particular: one variable per step, and **do not fuzz byte 1**.
 
         Do not attach vendor binaries, vendor code, firmware or decompiler

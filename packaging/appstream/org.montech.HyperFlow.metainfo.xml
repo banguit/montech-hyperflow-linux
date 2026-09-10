@@ -28,12 +28,12 @@
   <summary>Unofficial panel indicator for the Montech HyperFlow Digital AIO pump-head display</summary>
 
   <!-- No developer id= on purpose. AppStream wants an rDNS domain or a
-       Fediverse handle, both lowercase; "io.github.OWNER" is rejected for the
+       Fediverse handle, both lowercase; "io.github.banguit" is rejected for the
        uppercase placeholder, and asserting a montech.* domain here would
        claim exactly the affiliation this project disclaims. Fill in a real
        one (io.github.<owner>) at release time. -->
   <developer>
-    <name>The montech-hyperflow contributors</name>
+    <name>banguit</name>
   </developer>
 
   <description>
@@ -94,10 +94,10 @@
     <keyword>DH-C100</keyword>
   </keywords>
 
-  <url type="homepage">https://github.com/OWNER/montech-hyperflow-linux</url>
-  <url type="bugtracker">https://github.com/OWNER/montech-hyperflow-linux/issues</url>
-  <url type="help">https://github.com/OWNER/montech-hyperflow-linux/blob/main/README.md</url>
-  <url type="vcs-browser">https://github.com/OWNER/montech-hyperflow-linux</url>
+  <url type="homepage">https://github.com/banguit/montech-hyperflow-linux</url>
+  <url type="bugtracker">https://github.com/banguit/montech-hyperflow-linux/issues</url>
+  <url type="help">https://github.com/banguit/montech-hyperflow-linux/blob/main/README.md</url>
+  <url type="vcs-browser">https://github.com/banguit/montech-hyperflow-linux</url>
 
   <provides>
     <binary>montech-hyperflow-tray</binary>
@@ -111,7 +111,7 @@
 
   <releases>
     <release version="1.0.0" date="2026-09-10" type="stable">
-      <url type="details">https://github.com/OWNER/montech-hyperflow-linux/releases/tag/v1.0.0</url>
+      <url type="details">https://github.com/banguit/montech-hyperflow-linux/releases/tag/v1.0.0</url>
       <description>
         <p>Confirmed working on real hardware.</p>
         <ul>

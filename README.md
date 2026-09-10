@@ -49,7 +49,7 @@ Got a rebrand that works? [Open an issue](../../issues) and say so.
 > the config file.
 
 ```bash
-git clone https://github.com/OWNER/montech-hyperflow-linux
+git clone https://github.com/banguit/montech-hyperflow-linux
 cd montech-hyperflow-linux
 make test                # no hardware needed, should be all green
 sudo make install        # the driver, the service, device permissions

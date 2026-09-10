@@ -5,7 +5,7 @@
 Source: montech-hyperflow
 Section: utils
 Priority: optional
-Maintainer: montech-hyperflow contributors <OWNER@users.noreply.github.com>
+Maintainer: banguit <banguit@users.noreply.github.com>
 # debhelper only. No dh-python, no python3-setuptools, no pybuild: the
 # package installs into a private libdir (/usr/lib/montech-hyperflow) with
 # generated /usr/bin wrappers, so it is not tied to a Python ABI and needs
@@ -17,9 +17,9 @@ Standards-Version: 4.7.0
 # Nothing in the build needs root: the Makefile only ever calls install(1)
 # with default ownership, and dpkg fixes the ownership up itself.
 Rules-Requires-Root: no
-Homepage: https://github.com/OWNER/montech-hyperflow-linux
-Vcs-Browser: https://github.com/OWNER/montech-hyperflow-linux
-Vcs-Git: https://github.com/OWNER/montech-hyperflow-linux.git
+Homepage: https://github.com/banguit/montech-hyperflow-linux
+Vcs-Browser: https://github.com/banguit/montech-hyperflow-linux
+Vcs-Git: https://github.com/banguit/montech-hyperflow-linux.git
 
 Package: montech-hyperflow
 Architecture: all

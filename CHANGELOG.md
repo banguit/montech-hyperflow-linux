@@ -149,5 +149,5 @@ to be wrong; it is recorded here only so the later corrections have something
 to refer to.
 
 <!-- 0.1.0 and 0.2.0 predate tagging and have no release page. -->
-[Unreleased]: https://github.com/OWNER/montech-hyperflow-linux/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/OWNER/montech-hyperflow-linux/releases/tag/v1.0.0
+[Unreleased]: https://github.com/banguit/montech-hyperflow-linux/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/banguit/montech-hyperflow-linux/releases/tag/v1.0.0

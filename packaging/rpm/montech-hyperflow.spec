@@ -46,7 +46,7 @@ Release:        1%{?dist}
 Summary:        Unofficial Linux driver for the Montech HyperFlow Digital AIO display
 
 License:        GPL-3.0-or-later
-URL:            https://github.com/OWNER/montech-hyperflow-linux
+URL:            https://github.com/banguit/montech-hyperflow-linux
 Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
 
 # Pure Python, no compiled objects, no arch-specific paths.
@@ -316,7 +316,7 @@ gtk-update-icon-cache %{_datadir}/icons/hicolor >/dev/null 2>&1 || :
 %{_datadir}/icons/hicolor/scalable/apps/%{name}-light-idle.svg
 
 %changelog
-* Thu Sep 10 2026 montech-hyperflow packagers <OWNER@users.noreply.github.com> - 1.0.0-1
+* Thu Sep 10 2026 banguit <banguit@users.noreply.github.com> - 1.0.0-1
 - Initial RPM packaging, split into montech-hyperflow and -tray.
 - Ship the udev rule in %%{_udevrulesdir} rather than /etc, leaving /etc for
   admin overrides.

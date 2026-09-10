@@ -1,7 +1,7 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: montech-hyperflow
-Upstream-Contact: https://github.com/OWNER/montech-hyperflow-linux/issues
-Source: https://github.com/OWNER/montech-hyperflow-linux
+Upstream-Contact: https://github.com/banguit/montech-hyperflow-linux/issues
+Source: https://github.com/banguit/montech-hyperflow-linux
 Disclaimer: montech-hyperflow is unofficial, independently developed software. It is not
  produced, endorsed, supported, reviewed or approved by Montech, by TCOMAS or
  by SEMICO. "Montech" and "HyperFlow" are the marks of their respective

@@ -219,16 +219,37 @@ bump:
 # while the binary, the package, the systemd unit and the config file are all
 # plain "montech-hyperflow".
 set-repo:
-	@test -n "$(OWNER)" || { echo "usage: make set-repo OWNER=yourname [REPO=reponame]"; exit 2; }
+	@test -n "$(OWNER)" || { echo "usage: make set-repo OWNER=<github-username> [REPO=<reponame>]"; exit 2; }
+	@# OWNER is a GitHub USERNAME, not an email address. It goes into URLs and
+	@# into a users.noreply.github.com maintainer address, so an email here
+	@# silently yields github.com/you@example.com/... and a doubled @-address
+	@# in the deb and rpm metadata. GitHub allows alphanumerics and hyphens,
+	@# 1-39 characters, not starting or ending with a hyphen.
+	@echo "$(OWNER)" | grep -Eq '^[A-Za-z0-9]([A-Za-z0-9-]{0,37}[A-Za-z0-9])?$$' \
+	  || { echo "error: OWNER=$(OWNER) is not a GitHub username."; \
+	       case "$(OWNER)" in \
+	         *@*) echo "       That is an email address. Use the name in github.com/<this>/." ;; \
+	         -*|*-) echo "       A username cannot start or end with a hyphen." ;; \
+	       esac; exit 2; }
 	@if [ -n "$(REPO)" ] && [ "$(REPO)" != "montech-hyperflow-linux" ]; then \
 	    grep -rl 'montech-hyperflow-linux' --exclude-dir=.git --exclude-dir=build . \
 	      | xargs -r sed -i 's|montech-hyperflow-linux|$(REPO)|g'; \
 	    echo "repository name set to $(REPO)"; \
 	fi
-	@grep -rl 'OWNER' --exclude-dir=.git --exclude-dir=build . \
-	   | xargs -r sed -i 's|OWNER|$(OWNER)|g'
+	@# Only these three forms are placeholders. Every other occurrence of the
+	@# word is prose ABOUT the placeholder -- this target's own usage text, the
+	@# CHANGELOG, the packaging READMEs -- and substituting there would corrupt
+	@# the Makefile (turning $$(OWNER) into $$(yourname)) and mangle the docs.
+	@# The Makefile is excluded outright for the same reason.
+	@for f in $$(grep -rl -e 'github\.com/OWNER/' -e 'OWNER@users\.noreply' -e 'io\.github\.OWNER' \
+	             --exclude-dir=.git --exclude-dir=build --exclude=Makefile .); do \
+	    sed -i -e 's|github\.com/OWNER/|github.com/$(OWNER)/|g' \
+	           -e 's|OWNER@users\.noreply|$(OWNER)@users.noreply|g' \
+	           -e 's|io\.github\.OWNER|io.github.$(OWNER)|g' "$$f"; \
+	done
 	@echo "repository owner set to $(OWNER)"
-	@echo "remaining OWNER placeholders: $$(grep -ro OWNER --exclude-dir=.git --exclude-dir=build . | wc -l)"
+	@echo "remaining placeholders: $$(grep -ro -e 'github\.com/OWNER/' -e 'OWNER@users\.noreply' \
+	    -e 'io\.github\.OWNER' --exclude-dir=.git --exclude-dir=build --exclude=Makefile . | wc -l)"
 
 # Fails if any packaging file disagrees with the source of truth.
 check-version:

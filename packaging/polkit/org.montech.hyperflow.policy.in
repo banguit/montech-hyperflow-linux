@@ -8,7 +8,7 @@
      /usr/local/bin silently refuses every request. -->
 <policyconfig>
   <vendor>montech-hyperflow</vendor>
-  <vendor_url>https://github.com/OWNER/montech-hyperflow-linux</vendor_url>
+  <vendor_url>https://github.com/banguit/montech-hyperflow-linux</vendor_url>
   <icon_name>montech-hyperflow</icon_name>
 
   <action id="org.montech.hyperflow.configure">

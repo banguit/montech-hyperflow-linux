@@ -7,4 +7,4 @@ montech-hyperflow (1.0.0-1) unstable; urgency=medium
     Makefile's default of /etc/udev/rules.d, leaving /etc to the admin.
   * Ship the service disabled: driving the pump head at boot is opt-in.
 
- -- montech-hyperflow contributors <OWNER@users.noreply.github.com>  Thu, 10 Sep 2026 12:00:00 +0000
+ -- banguit <banguit@users.noreply.github.com>  Thu, 10 Sep 2026 12:00:00 +0000
