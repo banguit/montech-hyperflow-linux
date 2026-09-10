@@ -79,14 +79,14 @@ Report ID `0x07`, then:
 | 2 | tens digit |
 | 3 | ones digit |
 | 4 | `(level << 4) | unit` |
-| 5 | source: `0` = CPU, `1` = GPU |
+| 5 | source: `0` = CPU, `1` = GPU. Selects a text label the head draws above the digits. **Confirmed on hardware.** |
 | 6–63 | zero |
 
-- `level` = `min(celsius // 10, 9)`, clamped to one nibble. It almost
-  certainly drives the **10-segment vertical bar graph** on the left of the
-  display: ten possible values, ten segments. (An earlier version of this
-  note called it a "colour/intensity ramp"; the vendor manual's render of the
-  head shows a discrete bar instead. Pending E2.)
+- `level` = `min(celsius // 10, 9)`, clamped to one nibble. It drives the
+  **vertical segment bar** on the left of the display: N segments lit for
+  level N, none at all at level 0. **Confirmed on hardware**, see E2 under
+  Verification status. (An earlier version of this note called it a
+  "colour/intensity ramp". That was wrong.)
 - `unit`: `0` = °C, `1` = °F.
 - Digits are the *displayed* value, so in °F mode they are the Fahrenheit
   number — but **`level` is still computed from Celsius**. That asymmetry is in
@@ -327,8 +327,8 @@ cover.
 
 | # | Question | Experiment |
 |---|---|---|
-| 1 | Does byte 5 (`0` CPU / `1` GPU) change anything visible on a 7-segment head? | `E1` |
-| 2 | What does `level` actually drive — colour, brightness, nothing? | `E2` |
+| ~~1~~ | ~~Does byte 5 change anything visible?~~ **Settled: it selects a `CPU`/`GPU` text label the head draws.** | ~~`E1`~~ |
+| ~~2~~ | ~~What does `level` actually drive?~~ **Settled: the vertical segment bar, N segments for level N.** | ~~`E2`~~ |
 | 3 | Is the `0xFD` startup command *required*? (Known: it does not blank or disturb the display when sent.) | `E3` |
 | 4 | Does the descriptor-*incorrect* 65-byte frame also work, or does the firmware stall it? (64 is now known to work.) | `E4` |
 | 5 | Does the head need re-initialising after suspend/resume or a monitor-off cycle? | `E5` |
