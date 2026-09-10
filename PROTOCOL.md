@@ -178,20 +178,47 @@ Confidence for every claim above. Items move out of **Inferred** only when the
 pump head itself has been observed; see `EXPERIMENTS.md` for the experiment
 that settles each one.
 
+### Confirmed on hardware
+
+Observed on a Montech HyperFlow Digital 240 (2026-09-10), oracle = the pump
+head itself. Command:
+`montech-hyperflow --device /dev/montech-hyperflow --test-value 123`
+sending `07 FD 00 …` once, then `07 01 02 03 90 00 …` at 1 Hz.
+**The head displayed `123`.** That single observation settles five things:
+
+- The **64-byte** feature report reaches the firmware and is acted on. The
+  descriptor-derived length is not merely descriptor-correct, it works.
+- Report ID `0x07` on the `0xFF01` collection of **interface 01** is the
+  display path, over `HIDIOCSFEATURE` — no hidapi, no libusb, no unbinding.
+- **Digit order is byte 1 = hundreds, byte 2 = tens, byte 3 = ones**, exactly
+  as the disassembly said. Not reversed, not rotated.
+- Digits are **plain decimal bytes**. `01 02 03` rendered as `123`; BCD would
+  have produced something else entirely.
+- The `0xFD` startup frame **does not blank or disturb** the display when
+  followed by a temperature frame.
+
+Access path also confirmed end-to-end: the `72-` udev rule gives `/dev/hidraw5`
+both `GROUP=plugdev` and a `uaccess` ACL for the seat user, while
+`/dev/hidraw4` — the boot-keyboard interface — stays `root:root 0600`.
+
+Still open: everything that is not a digit. See the *Inferred* table below.
+
 ### Verified — by disassembly *and* by the device's report descriptor
 
 - USB `1a2c:4e85`; vendor collection UsagePage `0xFF01` / Usage `0x01` on
   interface **01**. Confirmed present on hardware.
 - HID **feature** report, report ID `0x07`.
 - **Report length is 64 bytes** (1 + 63). Settled from `Report Count 0x3F` in
-  the device's descriptor — this *replaces* the earlier 65-byte claim and
-  closes the "65 vs 64" open question without needing hardware.
+  the device's descriptor, and since confirmed on hardware — a 64-byte frame
+  is accepted and displayed. This *replaces* the earlier 65-byte claim and
+  closes the "65 vs 64" open question.
   The vendor's `0x40`/`0x41` asymmetry was a Windows truncation artefact, not
   a protocol fact.
 
 ### Verified — by disassembly only
 
-- Digits are plain decimal bytes; no BCD, no checksum, no sequence counter.
+- ~~Digits are plain decimal bytes; no BCD, no checksum, no sequence
+  counter.~~ **Promoted: confirmed on hardware.**
 - Byte 4 packing `(level << 4) | unit`, with `level = min(celsius // 10, 9)`
   computed **before** any °F conversion.
 - The displayed value is clamped at 199.
@@ -204,8 +231,8 @@ that settles each one.
 |---|---|---|
 | 1 | Does byte 5 (`0` CPU / `1` GPU) change anything visible on a 7-segment head? | `E1` |
 | 2 | What does `level` actually drive — colour, brightness, nothing? | `E2` |
-| 3 | Is the `0xFD` startup command required, or just an identify ping? | `E3` |
-| 4 | Does the descriptor-*incorrect* 65-byte frame also work, or does the firmware stall it? | `E4` |
+| 3 | Is the `0xFD` startup command *required*? (Known: it does not blank or disturb the display when sent.) | `E3` |
+| 4 | Does the descriptor-*incorrect* 65-byte frame also work, or does the firmware stall it? (64 is now known to work.) | `E4` |
 | 5 | Does the head need re-initialising after suspend/resume or a monitor-off cycle? | `E5` |
 | 6 | Does the unit nibble visibly change anything (a °C/°F indicator segment)? | `E-Unit` |
 | 7 | Does the declared Output instance of report 7 work as well as Feature? | `E6` |
