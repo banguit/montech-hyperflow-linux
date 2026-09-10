@@ -204,6 +204,43 @@ Access path also confirmed end-to-end: the `72-` udev rule gives `/dev/hidraw5`
 both `GROUP=plugdev` and a `uaccess` ACL for the seat user, while
 `/dev/hidraw4` — the boot-keyboard interface — stays `root:root 0600`.
 
+#### `level` drives the vertical bar graph (E2, settled 2026-09-10)
+
+Two frames differing **only** in byte 4's high nibble, digits pinned at `045`,
+photographed on the head:
+
+| Frame | byte 4 | Bar graph on the head |
+|---|---|---|
+| `07 00 04 05 90 01` | `level = 9` | **every segment lit**, amber at the bottom through orange to red at the top |
+| `07 00 04 05 00 01` | `level = 0` | **completely dark — no segment lit** |
+
+The digits read `45` in both, so the change is attributable to that nibble
+alone. `level` is therefore a **discrete segment bar**, as the manual's render
+suggested, and **not** a colour or intensity ramp applied to the digits — the
+original claim in these notes was wrong. `level = 0` lights nothing at all, so
+the mapping is the natural one: *N segments lit for level N*.
+
+Practical consequence: the driver sends `level = min(c // 10, 9)`, so a CPU at
+30–39 °C lights three segments. The bar is a coarse thermometer, not a load
+meter, and it only reaches full scale at 90 °C.
+
+#### Byte 5 drives the CPU/GPU label (E1, settled 2026-09-10)
+
+The same two photographs show `GPU` in blue above the digits, because the
+running configuration had `source = gpu` and the driver therefore set
+**byte 5 = `0x01`**. The manual's render of a factory-default head shows `CPU`
+in that same position. So byte 5 is not inert: it selects a text label the
+head renders itself.
+
+This was answered incidentally rather than by running E1 deliberately, which
+is the stronger result — the label tracked a setting changed through the tray,
+end to end.
+
+#### The unit indicator
+
+Both photographs show a green `°C` at the bottom right, consistent with the
+unit nibble being `0`. Not yet contrasted against `°F`, so E-Unit stands.
+
 **Live tracking confirmed too.** With the daemon on the autodetected sensor
 (`coretemp` / `Package id 0`), a 20-thread `stress` run drove the package from
 41 °C to a 59 °C plateau and back to 43 °C, and the head followed it to the

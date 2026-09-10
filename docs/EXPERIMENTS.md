@@ -145,6 +145,14 @@ between these two frames, the asymmetry is observable and worth recording.
 > change what you are looking for, and it means a *negative* result is the
 > interesting outcome rather than the boring one.
 
+## ~~E1 — does byte 5 do anything?~~ SETTLED
+
+**Answered 2026-09-10, incidentally.** With `source = gpu` in the config the
+head rendered `GPU` in blue above the digits, where the manual's render of a
+default head shows `CPU`. Byte 5 selects a text label. Nothing further to run.
+
+<details><summary>original procedure, kept for reference</summary>
+
 ## E1 — does byte 5 do anything?
 
 **Variable:** byte 5 only. Digits and level are pinned by `--test-value`, and
@@ -170,6 +178,18 @@ The two frames differ in exactly one byte.
 | something changed | Describe it; that is a new documented field. |
 
 ---
+
+</details>
+
+## ~~E2 — what does `level` control?~~ SETTLED
+
+**Answered 2026-09-10.** Two frames differing only in byte 4's high nibble,
+digits pinned at `045`, photographed on the head: `level = 9` lit every
+segment of the vertical bar (amber → orange → red bottom to top);
+`level = 0` lit none at all. `level` is a discrete segment bar, N segments
+for level N. It is not a colour or intensity ramp.
+
+<details><summary>original procedure, kept for reference</summary>
 
 ## E2 — what does `level` control?
 
@@ -219,6 +239,8 @@ most user-visible field in the protocol and belongs in the README.
 > byte 1, so it is not on the out-of-band command path.
 
 ---
+
+</details>
 
 ## E3 — is the `0xFD` startup command required?
 
