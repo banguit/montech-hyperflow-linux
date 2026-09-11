@@ -377,7 +377,11 @@ jobs:
         run: |
           set -e
           shopt -s nullglob globstar
-          files=(packaging/polkit/*.policy packaging/icons/**/*.svg
+          # The polkit policy is a TEMPLATE: the Makefile substitutes @BINDIR@
+          # into it at install time, so the file on disk is *.policy.in and a
+          # *.policy glob matches nothing. With nullglob that silently emptied
+          # the list and left xmllint below with no arguments.
+          files=(packaging/polkit/*.policy.in packaging/icons/**/*.svg
                  packaging/**/*metainfo.xml packaging/**/*appdata.xml)
           for f in "${files[@]}"; do
             python3 -c 'import sys,xml.dom.minidom as m; m.parse(sys.argv[1])' "$f"
@@ -385,7 +389,7 @@ jobs:
           done
           # The polkit policy has a DTD; validate against it when it resolves
           # locally (polkit ships the DTD in /usr/share/polkit-1).
-          xmllint --noout packaging/polkit/*.policy
+          xmllint --noout packaging/polkit/*.policy.in
         shell: bash
 
       - name: appstream metainfo (advisory)
