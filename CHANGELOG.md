@@ -16,6 +16,12 @@ Nothing yet.
 
 ## [1.0.0] - 2026-09-10
 
+> Released first as `v1.0.0-alpha1`. The packages inside a pre-release carry
+> the plain version `1.0.0`, because an alpha of 1.0.0 *is* 1.0.0 as far as
+> the source is concerned. Consequence: `dpkg`/`rpm` see the alpha and the
+> eventual final as the same version, so upgrading between them needs
+> `--reinstall` (or a bump to 1.0.1 for the final).
+
 First release with the display protocol **settled against the real pump
 head**, and the reason this is 1.0 rather than 0.4: six of the seven open
 protocol questions are now answered by observation rather than inference.

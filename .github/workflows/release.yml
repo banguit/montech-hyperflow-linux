@@ -25,9 +25,14 @@ jobs:
       - name: the tag must match __version__
         run: |
           tag="${GITHUB_REF_NAME#v}"
+          # A pre-release tag carries a suffix the source version does not:
+          # v1.0.0-alpha1 is an alpha OF 1.0.0, so compare only the part
+          # before the first hyphen. The suffix is what marks the GitHub
+          # release as a pre-release further down.
+          base="${tag%%-*}"
           ver="$(make version)"
-          echo "tag $GITHUB_REF_NAME -> $tag, source says $ver"
-          [ "$tag" = "$ver" ] || {
+          echo "tag $GITHUB_REF_NAME -> $base (suffix: ${tag#$base}), source says $ver"
+          [ "$base" = "$ver" ] || {
             echo "::error::tag $GITHUB_REF_NAME does not match __version__ $ver"
             exit 1
           }
