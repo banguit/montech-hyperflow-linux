@@ -55,18 +55,21 @@ libdir=$appdir/usr/lib/montech-hyperflow
 # only way to see through a symlink: $0 is the extracted AppRun path and says
 # nothing about how we were called. A renamed .AppImage works too, since its
 # filename is what ends up in ARGV0.
+# The mode/entry strings are quoted: "admin" is also the name of a real
+# command (SCCS), so an unquoted mode=admin reads to shellcheck as a
+# mistyped command substitution [SC2209]. Quoted throughout for consistency.
 self=$(basename "${ARGV0:-$0}")
 mode=
 case "$self" in
-    *tray*)  mode=tray ;;
-    *admin*) mode=admin ;;
-    *setup*) mode=setup ;;
-    montech-hyperflow|*cli*) mode=cli ;;
+    *tray*)  mode="tray" ;;
+    *admin*) mode="admin" ;;
+    *setup*) mode="setup" ;;
+    montech-hyperflow|*cli*) mode="cli" ;;
 esac
 
 case "${1:-}" in
     tray|cli|admin|setup)
-        mode=$1
+        mode="$1"
         shift
         ;;
     help|--modes)
@@ -76,7 +79,7 @@ case "${1:-}" in
 esac
 
 if [ -z "$mode" ]; then
-    if [ "$#" -gt 0 ]; then mode=cli; else mode=tray; fi
+    if [ "$#" -gt 0 ]; then mode="cli"; else mode="tray"; fi
 fi
 
 if [ "$mode" = setup ]; then
@@ -108,9 +111,9 @@ if ! command -v "$py" >/dev/null 2>&1; then
 fi
 
 case "$mode" in
-    tray)  entry=tray.app ;;
-    admin) entry=admin ;;
-    *)     entry=cli ;;
+    tray)  entry="tray.app" ;;
+    admin) entry="admin" ;;
+    *)     entry="cli" ;;
 esac
 
 # Deliberately not exec'ing usr/bin/montech-hyperflow: the Makefile's
