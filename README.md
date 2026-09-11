@@ -2,11 +2,16 @@
 
 # montech-hyperflow-linux
 
-**A Linux driver for the Montech HyperFlow Digital's temperature display.**
+**A Linux driver for the temperature display on the Montech HyperFlow
+_Digital_ AIO cooler.**
 
-The pump head has a little screen, and Montech only ships a Windows app to
-drive it. I reverse-engineered the protocol so it works on Linux: a background
-service, a panel indicator, and no dependencies beyond Python itself.
+The **Digital** models have a small screen on the pump head, and Montech only
+ships a Windows app to drive it. I reverse-engineered the protocol so it works
+on Linux: a background service, a panel indicator, and no dependencies beyond
+Python itself.
+
+<sub>The plain <b>HyperFlow</b> — without “Digital” in the name — has no
+screen, so there is nothing here for it.</sub>
 
 [![license](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
 [![protocol](https://img.shields.io/badge/protocol-confirmed%20on%20hardware-brightgreen)](docs/PROTOCOL.md)
@@ -45,6 +50,11 @@ a sign you have the wrong device.
 | **Confirmed working** | HyperFlow Digital 240 |
 | **Expected to work** | HyperFlow Digital 360 — same protocol, same controller |
 | **Quite likely** | Other rebrands of the OEM platform **TCOMAS DH-C100** |
+| **Not applicable** | **HyperFlow** and **HyperFlow ARGB** — no display on the pump head, so nothing to drive |
+
+The distinguishing feature is the **screen**, not the name: if your pump head
+shows a number, this is for you. If it only glows, it is the non-Digital
+model and this project does nothing for it.
 
 Got a rebrand that works? [Open an issue](../../issues) and say so.
 

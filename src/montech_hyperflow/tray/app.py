@@ -121,7 +121,7 @@ class TrayApp:
             APP_ID, self.icon_active,
             AppIndicator.IndicatorCategory.HARDWARE)
         self.indicator.set_status(AppIndicator.IndicatorStatus.ACTIVE)
-        self.indicator.set_title("Montech HyperFlow")
+        self.indicator.set_title("Montech HyperFlow Digital")
 
         self._building = False
         self.menu = Gtk.Menu()
@@ -183,7 +183,7 @@ class TrayApp:
                        "not-installed": "service not installed"}.get(
                            state, "no status from the daemon")
         self.indicator.set_label(label, "888°C")
-        self.indicator.set_title("Montech HyperFlow — " + tooltip)
+        self.indicator.set_title("Montech HyperFlow Digital — " + tooltip)
 
         # Rebuild the menu only when something a user can see has changed,
         # so an open menu is not yanked out from under the pointer.
@@ -373,7 +373,7 @@ class TrayApp:
 
     def on_about(self, _item):
         dialog = Gtk.AboutDialog()
-        dialog.set_program_name("Montech HyperFlow")
+        dialog.set_program_name("Montech HyperFlow Digital")
         dialog.set_version(__version__)
         dialog.set_comments(
             "Drives the 7-segment display on a Montech HyperFlow Digital "

@@ -30,7 +30,7 @@ Depends: ${misc:Depends},
          udev
 Recommends: systemd
 Suggests: montech-hyperflow-tray
-Description: unofficial Linux driver for the Montech HyperFlow AIO pump display
+Description: unofficial Linux driver for the Montech HyperFlow Digital AIO pump display
  Drives the 7-segment temperature display on the pump head of a Montech
  HyperFlow Digital 241.0.0 all-in-one liquid cooler. A small daemon reads a
  hwmon sensor -- the CPU package by default, optionally the GPU -- and writes
@@ -78,7 +78,7 @@ Depends: ${misc:Depends},
 # GNOME hides StatusNotifierItems without this extension; Ubuntu's GNOME
 # already ships it enabled, stock GNOME does not.
 Recommends: gnome-shell-extension-appindicator
-Description: panel indicator for the Montech HyperFlow AIO pump display
+Description: panel indicator for the Montech HyperFlow Digital AIO pump display
  A tray indicator showing the temperature currently on the pump head, with
  Celsius/Fahrenheit, CPU/GPU, start/stop and blank one click away.
  .

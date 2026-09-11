@@ -152,7 +152,7 @@ one for you:
 ```ini
 # ~/.config/systemd/user/montech-hyperflow.service
 [Unit]
-Description=Montech HyperFlow pump-head display (AppImage)
+Description=Montech HyperFlow Digital pump-head display (AppImage)
 
 [Service]
 Type=exec

@@ -19,10 +19,10 @@
 #     snapcraft
 
 name: montech-hyperflow
-title: Montech HyperFlow pump head
-summary: Unofficial Linux driver for the Montech HyperFlow pump-head display
+title: Montech HyperFlow Digital pump head
+summary: Unofficial Linux driver for the Montech HyperFlow Digital pump-head display
 description: |
-  UNOFFICIAL, independently developed driver for the 7-segment display on a Montech HyperFlow
+  UNOFFICIAL, independently developed driver for the 7-segment display on a Montech HyperFlow Digital
   Digital 241.0.0 AIO pump head. Not produced, endorsed or supported by
   Montech. The vendor application is Windows-only; this is an independent
   Linux implementation of the wire protocol, documented from scratch. It
