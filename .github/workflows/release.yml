@@ -126,6 +126,26 @@ jobs:
           fi
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libfuse2 file desktop-file-utils
+
+          # appimagetool is not in the Ubuntu archive, and build-appimage.sh
+          # deliberately refuses to fetch it: a package build should not pull
+          # an unpinned binary off the network behind the packager's back. CI
+          # is the right place to do it instead -- pinned to a release tag,
+          # with the checksum printed so the log is auditable.
+          tool_ver=1.9.0
+          url="https://github.com/AppImage/appimagetool/releases/download/$tool_ver/appimagetool-x86_64.AppImage"
+          if curl -fsSL --retry 3 --retry-delay 2 -o "$RUNNER_TEMP/appimagetool" "$url"; then
+            chmod +x "$RUNNER_TEMP/appimagetool"
+            echo "appimagetool $tool_ver sha256:"
+            sha256sum "$RUNNER_TEMP/appimagetool"
+            export APPIMAGETOOL="$RUNNER_TEMP/appimagetool"
+            # Unpack rather than mount: FUSE is unreliable on hosted runners
+            # and in containers, and appimagetool honours this itself.
+            export APPIMAGE_EXTRACT_AND_RUN=1
+          else
+            echo "::warning::could not fetch appimagetool $tool_ver; no .AppImage will be produced"
+          fi
+
           sh "$script"
           mkdir -p out
           find . -maxdepth 2 -name '*.AppImage' -exec cp -v {} out/ \;
