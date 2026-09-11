@@ -11,6 +11,7 @@ service, a panel indicator, and no dependencies beyond Python itself.
 [![license](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
 [![protocol](https://img.shields.io/badge/protocol-confirmed%20on%20hardware-brightgreen)](docs/PROTOCOL.md)
 [![no deps](https://img.shields.io/badge/dependencies-python3%20only-brightgreen)](#why-no-dependencies)
+[![download](https://img.shields.io/github/v/release/banguit/montech-hyperflow-linux?include_prereleases&label=download&color=blue)](https://github.com/banguit/montech-hyperflow-linux/releases/latest)
 
 </div>
 
@@ -41,6 +42,28 @@ a sign you have the wrong device.
 | **Quite likely** | Other rebrands of the OEM platform **TCOMAS DH-C100** |
 
 Got a rebrand that works? [Open an issue](../../issues) and say so.
+
+## Download
+
+Prebuilt packages are attached to every release:
+
+### **[→ Download the latest release](https://github.com/banguit/montech-hyperflow-linux/releases/latest)**
+
+| Your distro | File | Install it with |
+|---|---|---|
+| Debian, Ubuntu, Mint, Pop!_OS | `montech-hyperflow_*_all.deb` | `sudo apt install ./montech-hyperflow_*_all.deb` |
+| Fedora, RHEL, openSUSE | `montech-hyperflow-*.noarch.rpm` | `sudo dnf install ./montech-hyperflow-*.noarch.rpm` |
+| Anything else | `montech-hyperflow-*.tar.gz` | unpack, then `sudo make install` |
+
+The `-tray` RPM is the optional panel indicator; the `.deb` includes it
+already. `SHA256SUMS` is attached too — verify with
+`sha256sum -c SHA256SUMS`.
+
+After installing, jump to [checking it found your cooler](#install).
+
+> Releases marked **Pre-release** are early builds. `v1.0.0-alpha1` is the
+> current one: the protocol is confirmed on real hardware, but the packaging
+> for some formats has had little real-world use.
 
 ## Install
 
@@ -267,6 +290,17 @@ Please don't send vendor binaries or vendor code.
 make test     # 87 hardware-free tests
 make lint     # syntax, udev rule, desktop file, polkit XML, icons
 ```
+
+## Support the project
+
+This is a spare-time project and it will always be free. If it saved you an
+afternoon and you would like to say thanks:
+
+- **[PayPal](https://www.paypal.com/donate/?business=SD7SXSNVLLU2W&no_recurring=0&currency_code=USD)**
+- **[Buy Me a Coffee](https://buymeacoffee.com/BMC_USERNAME)**
+
+Reporting that it works on a cooler I do not own is worth more than money —
+see [Contributing](#contributing).
 
 ## License
 
