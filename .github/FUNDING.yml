@@ -1,6 +1,6 @@
 # Drives the "Sponsor" button GitHub shows on the repository header.
-# buy_me_a_coffee takes a USERNAME, not a URL: the resulting link is
-# https://buymeacoffee.com/<username>. Fill it in and uncomment.
-#buy_me_a_coffee: BMC_USERNAME
+# buy_me_a_coffee takes a USERNAME, not a URL; GitHub builds the link as
+# https://buymeacoffee.com/<username>.
+buy_me_a_coffee: dmytroantonenko
 custom:
   - "https://www.paypal.com/donate/?business=SD7SXSNVLLU2W&no_recurring=0&currency_code=USD"

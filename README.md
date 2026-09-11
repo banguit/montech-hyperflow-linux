@@ -297,7 +297,7 @@ This is a spare-time project and it will always be free. If it saved you an
 afternoon and you would like to say thanks:
 
 - **[PayPal](https://www.paypal.com/donate/?business=SD7SXSNVLLU2W&no_recurring=0&currency_code=USD)**
-- **[Buy Me a Coffee](https://buymeacoffee.com/BMC_USERNAME)**
+- **[Buy Me a Coffee](https://buymeacoffee.com/dmytroantonenko)**
 
 Reporting that it works on a cooler I do not own is worth more than money —
 see [Contributing](#contributing).
