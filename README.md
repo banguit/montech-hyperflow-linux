@@ -13,6 +13,11 @@ service, a panel indicator, and no dependencies beyond Python itself.
 [![no deps](https://img.shields.io/badge/dependencies-python3%20only-brightgreen)](#why-no-dependencies)
 [![download](https://img.shields.io/github/v/release/banguit/montech-hyperflow-linux?include_prereleases&label=download&color=blue)](https://github.com/banguit/montech-hyperflow-linux/releases/latest)
 
+<img src="docs/images/pump-head-in-case.jpg" alt="The pump head showing 39 °C, driven from Linux" width="820">
+
+<sub>The pump head reading live CPU temperature on Linux — digits, the
+<code>CPU</code> label and the level bar all driven by this project.</sub>
+
 </div>
 
 ---
@@ -119,22 +124,7 @@ pick](#which-package-should-i-use).
 `montech-hyperflow-tray` puts the temperature in your top bar, with the
 things worth having one click away:
 
-```
-  ┌─────────────────────────────────────┐
-  │  CPU  41 °C   (level 4)             │
-  │  /sys/class/hwmon/hwmon3/temp1_input│
-  │ ─────────────────────────────────── │
-  │  ● Celsius                          │
-  │  ○ Fahrenheit                       │
-  │ ─────────────────────────────────── │
-  │  ● Show CPU                         │
-  │  ○ Show GPU 0 - GeForce RTX 3090    │
-  │  ○ Show GPU 1 - GeForce RTX 3090 Ti │
-  │ ─────────────────────────────────── │
-  │  Stop display service               │
-  │  Blank the display now              │
-  └─────────────────────────────────────┘
-```
+<img src="docs/images/tray-menu.png" alt="The tray menu: temperature, °C/°F, CPU or either GPU, service controls" width="420">
 
 Each GPU is listed by name, because "Show GPU" is meaningless on a two-card
 machine. Settings are written through polkit, so expect one authentication
