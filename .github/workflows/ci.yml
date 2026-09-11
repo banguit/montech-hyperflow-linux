@@ -116,7 +116,15 @@ jobs:
           # --severity=warning, not the default: style and info nits ("use $(..)
           # instead of backticks") should not block a merge on a repository
           # whose shell is four small scripts. Real bugs still fail.
-          shellcheck --severity=warning --shell=sh packaging/systemd/montech-hyperflow-sleep
+          rc=0
+          : > "$RUNNER_TEMP/sc.txt"
+
+          # --format=gcc so the findings can be re-emitted as annotations
+          # below. Job logs need authentication even on a public repository;
+          # annotations do not, so a failure here stays diagnosable from the
+          # API without a token.
+          shellcheck --severity=warning --format=gcc --shell=sh \
+            packaging/systemd/montech-hyperflow-sleep >> "$RUNNER_TEMP/sc.txt" || rc=1
 
           # Then everything else in packaging/ that starts with a shell
           # shebang -- the AppImage scripts, the Debian maintainer scripts,
@@ -124,12 +132,18 @@ jobs:
           # hardcoded list so a new script cannot slip past unchecked.
           # (The pacman .install scriptlet has no shebang and is sourced, not
           # run, so it is deliberately not in scope.)
-          n=0
+          n=1
           while IFS= read -r f; do
+            # not "[ ... ] && continue": under set -e a false test is a
+            # non-zero last command and would abort the loop.
+            if [ "$f" = packaging/systemd/montech-hyperflow-sleep ]; then
+              continue
+            fi
             case "$(head -n1 "$f")" in
               '#!'*sh*)
                 echo "shellcheck $f"
-                shellcheck --severity=warning "$f"   # dialect from the shebang
+                shellcheck --severity=warning --format=gcc "$f" \
+                  >> "$RUNNER_TEMP/sc.txt" || rc=1
                 n=$((n + 1))
                 ;;
             esac
@@ -139,6 +153,22 @@ jobs:
                  | sort)
           EOF
           echo "$n shell scripts checked"
+
+          python3 - "$RUNNER_TEMP/sc.txt" <<'PY'
+          import re, sys
+          for raw in open(sys.argv[1]):
+              line = raw.rstrip()
+              if not line:
+                  continue
+              m = re.match(r'([^:]+):(\d+):(\d+):\s*(\w+):\s*(.*)', line)
+              if m:
+                  f, ln, col, level, msg = m.groups()
+                  kind = "error" if level in ("error", "warning") else "notice"
+                  print("::%s file=%s,line=%s,col=%s::%s" % (kind, f, ln, col, msg))
+              else:
+                  print(line)
+          PY
+          exit $rc
 
       - name: the version is stated in exactly one place
         run: |
