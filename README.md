@@ -134,7 +134,7 @@ pick](#which-package-should-i-use).
 `montech-hyperflow-tray` puts the temperature in your top bar, with the
 things worth having one click away:
 
-<img src="docs/images/tray-menu.png" alt="The tray menu: temperature, °C/°F, CPU or either GPU, service controls" width="420">
+<img src="docs/images/tray-menu.png" alt="The tray menu: current temperature and level, °C/°F, CPU or either GPU by name, service controls, and start-at-boot and start-at-login checkboxes" width="430">
 
 Each GPU is listed by name, because "Show GPU" is meaningless on a two-card
 machine. Settings are written through polkit, so expect one authentication
