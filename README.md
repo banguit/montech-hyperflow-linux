@@ -143,6 +143,18 @@ prompt.
 The tray is a **client**. It never opens the device — the service owns that,
 so the display keeps working when you log out or sit at the login screen.
 
+Two of the entries are about *next* time rather than now, and they are
+separate on purpose:
+
+| | |
+|---|---|
+| **Start display at boot** | `systemctl enable` — the head shows a temperature from boot, with nobody logged in |
+| **Show this icon at login** | drops a `.desktop` file in `~/.config/autostart/` — only the panel icon |
+
+*Stop/Start display service* above them affects the running service only, so
+a service you started from the menu will not come back after a reboot unless
+**Start display at boot** is ticked.
+
 > **GNOME:** tray icons need the *AppIndicator and KStatusNotifierItem*
 > extension. Ubuntu enables it by default; on stock GNOME install
 > `gnome-shell-extension-appindicator`.

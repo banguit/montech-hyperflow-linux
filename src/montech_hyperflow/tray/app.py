@@ -189,6 +189,7 @@ class TrayApp:
         # so an open menu is not yanked out from under the pointer.
         gpus, gpu_error = service.gpu_choices()
         signature = (state, bool(record), record and record.get("stale"),
+                     service.starts_at_boot(), service.starts_at_login(),
                      service.selected_unit(record, settings),
                      service.selected_source(record, settings),
                      service.selected_gpu_index(record, settings),
@@ -299,6 +300,21 @@ class TrayApp:
         blank.connect("activate", self.on_blank)
         self.menu.append(blank)
 
+        # "Stop/Start display service" above is for right now; these two are
+        # for next time. Keeping them apart matters: the service starts at
+        # BOOT and drives the head with nobody logged in, while the tray
+        # starts at LOGIN and only reports what the service is doing.
+        boot = Gtk.CheckMenuItem(label="Start display at boot")
+        boot.set_active(service.starts_at_boot())
+        boot.set_sensitive(state != "not-installed")
+        boot.connect("toggled", self.on_start_at_boot)
+        self.menu.append(boot)
+
+        login = Gtk.CheckMenuItem(label="Show this icon at login")
+        login.set_active(service.starts_at_login())
+        login.connect("toggled", self.on_start_at_login)
+        self.menu.append(login)
+
         self.menu.append(Gtk.SeparatorMenuItem())
 
         docs = Gtk.MenuItem(label="Protocol notes")
@@ -351,6 +367,30 @@ class TrayApp:
 
     def on_toggle_service(self, _item, running):
         ok, out = service.stop() if running else service.start()
+        self._report(ok, out)
+
+    def on_start_at_boot(self, item):
+        if self._building:
+            return
+        want = item.get_active()
+        ok, out = service.set_enabled(want)
+        if not ok:
+            # Put the tick back: the state belongs to systemd, not to us, and
+            # leaving it showing a change that was refused is a lie.
+            self._building = True
+            item.set_active(not want)
+            self._building = False
+        self._report(ok, out)
+
+    def on_start_at_login(self, item):
+        if self._building:
+            return
+        want = item.get_active()
+        ok, out = service.set_autostart(want)
+        if not ok:
+            self._building = True
+            item.set_active(not want)
+            self._building = False
         self._report(ok, out)
 
     def on_blank(self, _item):

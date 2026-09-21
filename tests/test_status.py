@@ -189,3 +189,71 @@ class MenuSelection(unittest.TestCase):
     def test_explicit_celsius_in_config_is_honoured(self):
         settings = {"fahrenheit": False, "source": "cpu"}
         self.assertEqual(self.service.selected_unit(None, settings), "C")
+
+
+class TrayAutostart(unittest.TestCase):
+    """The tray's "show this icon at login" toggle.
+
+    Deliberately separate from the service's "start at boot": the service
+    drives the head with nobody logged in, the tray only reports on it.
+    """
+
+    def setUp(self):
+        from montech_hyperflow.tray import service
+        self.service = service
+        self.dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.dir, True)
+        self._old = os.environ.get("XDG_CONFIG_HOME")
+        os.environ["XDG_CONFIG_HOME"] = self.dir
+        self.addCleanup(self._restore)
+
+    def _restore(self):
+        if self._old is None:
+            os.environ.pop("XDG_CONFIG_HOME", None)
+        else:
+            os.environ["XDG_CONFIG_HOME"] = self._old
+
+    def test_path_follows_xdg_config_home(self):
+        self.assertTrue(self.service.autostart_path().startswith(self.dir))
+        self.assertTrue(self.service.autostart_path().endswith(
+            "autostart/montech-hyperflow-tray.desktop"))
+
+    def test_off_by_default(self):
+        self.assertFalse(self.service.starts_at_login())
+
+    def test_round_trip(self):
+        ok, msg = self.service.set_autostart(True)
+        self.assertTrue(ok, msg)
+        self.assertTrue(self.service.starts_at_login())
+        ok, msg = self.service.set_autostart(False)
+        self.assertTrue(ok, msg)
+        self.assertFalse(self.service.starts_at_login())
+
+    def test_disabling_twice_is_not_an_error(self):
+        self.assertTrue(self.service.set_autostart(False)[0])
+        self.assertTrue(self.service.set_autostart(False)[0])
+
+    def test_writes_a_valid_desktop_entry(self):
+        self.service.set_autostart(True)
+        text = open(self.service.autostart_path()).read()
+        self.assertTrue(text.startswith("[Desktop Entry]"))
+        for key in ("Type=Application", "Exec=montech-hyperflow-tray",
+                    "X-GNOME-Autostart-enabled=true"):
+            self.assertIn(key, text)
+
+    def test_respects_a_desktop_that_switched_it_off(self):
+        # GNOME records "installed but off" by rewriting the file rather than
+        # deleting it; the menu must not show a tick for that.
+        self.service.set_autostart(True)
+        path = self.service.autostart_path()
+        with open(path, "a") as fh:
+            fh.write("X-GNOME-Autostart-enabled=false\n")
+        self.assertFalse(self.service.starts_at_login())
+        with open(path, "w") as fh:
+            fh.write("[Desktop Entry]\nType=Application\nHidden=true\n")
+        self.assertFalse(self.service.starts_at_login())
+
+    def test_leaves_no_temp_file(self):
+        self.service.set_autostart(True)
+        d = os.path.dirname(self.service.autostart_path())
+        self.assertEqual([f for f in os.listdir(d) if f.endswith(".tmp")], [])

@@ -6,6 +6,7 @@ through the session's authentication agent) and a pkexec'd admin helper for
 the config file.
 """
 
+import os
 import shutil
 import subprocess
 
@@ -71,8 +72,85 @@ def unit_state():
 
 
 def unit_enabled():
+    """'enabled' | 'disabled' | 'static' | 'masked' | 'unknown'.
+
+    Note this is independent of unit_state(): a service can be running now
+    and still not start at boot, which is exactly what happens when it is
+    started from this menu rather than enabled.
+    """
     ok, out = _run(["systemctl", "is-enabled", UNIT], timeout=10)
     return out.splitlines()[0].strip() if out else "unknown"
+
+
+def starts_at_boot():
+    return unit_enabled() == "enabled"
+
+
+# --- tray autostart -------------------------------------------------------
+#
+# Separate from the service, and deliberately so. The service starts at BOOT
+# and drives the display whether or not anyone logs in; the tray starts at
+# LOGIN and only shows what the service is doing. Conflating them would mean
+# either no display until someone logs in, or an icon nobody asked for.
+AUTOSTART_BASENAME = "montech-hyperflow-tray.desktop"
+
+
+def autostart_path():
+    base = os.environ.get("XDG_CONFIG_HOME") or \
+        os.path.join(os.path.expanduser("~"), ".config")
+    return os.path.join(base, "autostart", AUTOSTART_BASENAME)
+
+
+def starts_at_login():
+    path = autostart_path()
+    if not os.path.exists(path):
+        return False
+    # A file with Hidden=true or the GNOME flag set to false is how desktops
+    # record "installed but switched off"; treat either as off.
+    try:
+        with open(path) as fh:
+            text = fh.read()
+    except OSError:
+        return False
+    for line in text.splitlines():
+        key = line.strip().lower()
+        if key in ("hidden=true", "x-gnome-autostart-enabled=false"):
+            return False
+    return True
+
+
+def set_autostart(enabled):
+    """(ok, message). Writes under the user's own config; no polkit needed."""
+    path = autostart_path()
+    if not enabled:
+        try:
+            os.unlink(path)
+        except FileNotFoundError:
+            pass
+        except OSError as exc:
+            return False, "could not remove %s: %s" % (path, exc)
+        return True, ""
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        tmp = path + ".tmp"
+        with open(tmp, "w") as fh:
+            fh.write(AUTOSTART_DESKTOP)
+        os.replace(tmp, path)
+    except OSError as exc:
+        return False, "could not write %s: %s" % (path, exc)
+    return True, ""
+
+
+AUTOSTART_DESKTOP = """[Desktop Entry]
+Type=Application
+Name=Montech HyperFlow Digital tray
+Comment=Show the AIO pump-head temperature in the panel
+Exec=montech-hyperflow-tray
+Icon=montech-hyperflow
+Terminal=false
+NoDisplay=true
+X-GNOME-Autostart-enabled=true
+"""
 
 
 def start():
