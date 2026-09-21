@@ -192,7 +192,7 @@ class MenuSelection(unittest.TestCase):
 
 
 class TrayAutostart(unittest.TestCase):
-    """The tray's "show this icon at login" toggle.
+    """The tray's "Show tray icon at login" toggle.
 
     Deliberately separate from the service's "start at boot": the service
     drives the head with nobody logged in, the tray only reports on it.

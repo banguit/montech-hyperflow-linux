@@ -161,7 +161,7 @@ sudo systemctl restart montech-hyperflow.service
 For the indicator, install `montech-hyperflow-tray` and run
 `montech-hyperflow-tray`, or launch "Montech HyperFlow" from your application
 menu. To start it with the session, copy
-The tray menu has a **Show this icon at login** checkbox; it writes a file into
+The tray menu has a **Show tray icon at login** checkbox; it writes a file into
 `~/.config/autostart/`.
 
 ## Notes for the packager

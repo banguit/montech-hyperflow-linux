@@ -149,7 +149,7 @@ separate on purpose:
 | | |
 |---|---|
 | **Start display at boot** | `systemctl enable` — the head shows a temperature from boot, with nobody logged in |
-| **Show this icon at login** | drops a `.desktop` file in `~/.config/autostart/` — only the panel icon |
+| **Show tray icon at login** | drops a `.desktop` file in `~/.config/autostart/` — only the panel icon |
 
 *Stop/Start display service* above them affects the running service only, so
 a service you started from the menu will not come back after a reboot unless

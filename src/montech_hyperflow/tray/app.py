@@ -310,7 +310,7 @@ class TrayApp:
         boot.connect("toggled", self.on_start_at_boot)
         self.menu.append(boot)
 
-        login = Gtk.CheckMenuItem(label="Show this icon at login")
+        login = Gtk.CheckMenuItem(label="Show tray icon at login")
         login.set_active(service.starts_at_login())
         login.connect("toggled", self.on_start_at_login)
         self.menu.append(login)
